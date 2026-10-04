@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Among Us Arcade - Pantallas Separadas P2P</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Among Us Arcade (Pantallas Separadas)</h1>
+    <div class="controls">
+      <button id="btnHost" onclick="crearSala()">1. Crear Sala (Host)</button>
+      <input type="text" id="inputSala" placeholder="Pegar código de sala">
+      <button id="btnJoin" onclick="unirseASala()">2. Unirse (Invitado)</button>
+    </div>
+    <p id="status">Estado: Desconectado. Crea una sala o únete a una existente.</p>
+  </header>
+
+  <main>
+    <!-- Sustituye src con el link de tu juego exportado en GitHub Pages o simulador -->
+    <iframe id="gameFrame" src="about:blank"></iframe>
+  </main>
+
+  <script>
+    const iframe = document.getElementById("gameFrame");
+    const statusText = document.getElementById("status");
+    let peer = null;
+    let conn = null;
+
+    // Escuchar eventos que emite MakeCode desde el iframe
+    window.addEventListener("message", (event) => {
+      if (event.data && event.data.canal === "amogus_out" && conn && conn.open) {
+        conn.send(event.data);
+      }
+    });
+
+    function setupDataHandlers(connection, esHost) {
+      conn = connection;
+      statusText.innerText = "¡Conexión P2P establecida! La partida ha comenzado.";
+      
+      setTimeout(() => {
+        iframe.contentWindow.postMessage({
+          canal: "amogus_in",
+          accion: "setup_red",
+          valor: esHost ? "host" : "cliente"
+        }, "*");
+      }, 1000);
+
+      conn.on("data", (data) => {
+        iframe.contentWindow.postMessage({
+          canal: "amogus_in",
+          accion: data.accion,
+          valor: data.valor
+        }, "*");
+      });
+
+      conn.on("close", () => {
+        statusText.innerText = "El otro jugador se ha desconectado.";
+      });
+    }
+
+    function crearSala() {
+      statusText.innerText = "Generando sala...";
+      peer = new Peer();
+
+      peer.on("open", (id) => {
+        statusText.innerText = "Sala lista. Comparte este código: " + id;
+        navigator.clipboard.writeText(id).catch(() => {});
+      });
+
+      peer.on("connection", (c) => {
+        setupDataHandlers(c, true);
+      });
+    }
+
+    function unirseASala() {
+      const codigo = document.getElementById("inputSala").value.trim();
+      if (!codigo) {
+        alert("Introduce un código de sala válido");
+        return;
+      }
+      statusText.innerText = "Conectando con la sala...";
+      peer = new Peer();
+
+      peer.on("open", () => {
+        const c = peer.connect(codigo);
+        c.on("open", () => {
+          setupDataHandlers(c, false);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

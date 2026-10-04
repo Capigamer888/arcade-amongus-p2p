@@ -1,0 +1,20 @@
+{
+  "name": "arcade-iframe-bridge",
+  "version": "0.0.1",
+  "description": "Extensión puente postMessage para comunicación P2P entre MakeCode Arcade y HTML padre",
+  "dependencies": {
+    "device": "*"
+  },
+  "files": [
+    "README.md",
+    "main.ts"
+  ],
+  "simFiles": [
+    "sim/api.ts"
+  ],
+  "testFiles": [],
+  "public": true,
+  "targetVersions": {
+    "target": "arcade"
+  }
+}
