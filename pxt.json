@@ -1,19 +1,24 @@
 {
-  "name": "arcade-amongus-p2p",
-  "version": "1.0.1",
-  "description": "Among Us P2P Multiplayer in MakeCode Arcade",
-  "dependencies": {
-    "device": "*"
-  },
-  "files": [
-    "main.ts",
-    "README.md",
-    "images.g.jres",
-    "tilemap.g.jres"
-  ],
-  "testFiles": [],
-  "public": true,
-  "targetVersions": {
-    "target": "4.1.25"
-  }
+    "name": "arcade-amongus-p2p",
+    "version": "1.0.1",
+    "description": "Among Us P2P Multiplayer in MakeCode Arcade",
+    "dependencies": {
+        "device": "*"
+    },
+    "files": [
+        "main.ts",
+        "README.md",
+        "images.g.jres",
+        "tilemap.g.jres"
+    ],
+    "testFiles": [],
+    "public": true,
+    "targetVersions": {
+        "target": "4.1.25",
+        "targetId": "arcade"
+    },
+    "supportedTargets": [
+        "arcade"
+    ],
+    "preferredEditor": "tsprj"
 }
