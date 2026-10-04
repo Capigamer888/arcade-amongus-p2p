@@ -14,7 +14,10 @@ namespace redP2P {
     export function inicializar() {
         try {
             control.simmessages.onReceived("amogus", function(data: Buffer) {
-                let str = data.toString();
+                let str = "";
+                for (let i = 0; i < data.length; i++) {
+                    str += String.fromCharCode(data[i]);
+                }
                 let sep = str.indexOf("|");
                 if (sep >= 0) {
                     let acc = str.substr(0, sep);
