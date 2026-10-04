@@ -7,12 +7,13 @@ namespace redP2P {
     }
     export function enviarDatos(accion: string, valor: string): void {
         try {
-            (control as any).simmessages.send("amogus", Buffer.fromUTF8(accion + "|" + valor));
+            let msg = accion + "|" + valor;
+            control.simmessages.send("amogus", Buffer.fromUTF8(msg));
         } catch (e) {}
     }
     export function inicializar() {
         try {
-            (control as any).simmessages.onReceived("amogus", function(data: Buffer) {
+            control.simmessages.onReceived("amogus", function(data: Buffer) {
                 let str = data.toString();
                 let sep = str.indexOf("|");
                 if (sep >= 0) {
