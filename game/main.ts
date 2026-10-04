@@ -1,182 +1,36 @@
-// Among Us Arcade P2P - Mapa Polus & Soporte 4 Jugadores (Pantallas Separadas)
+// Among Us Arcade P2P - Mapa Skeld & Soporte 4 Jugadores
 
-// --- Sistema de Red Online Nativo ---
 namespace redP2P {
     let _handlers: ((accion: string, valor: string) => void)[] = [];
-
     export function alRecibir(handler: (accion: string, valor: string) => void): void {
         _handlers.push(handler);
     }
-
     export function enviarDatos(accion: string, valor: string): void {
         try {
-            if (control && control.simmessages) {
-                let msg = accion + "|" + valor;
-                control.simmessages.send("amogus", Buffer.fromUTF8(msg));
-            }
+            let msg = accion + "|" + valor;
+            control.simmessages.send("amogus", Buffer.fromUTF8(msg));
         } catch (e) {}
     }
-
     export function despachar(accion: string, valor: string): void {
-        for (let h of _handlers) {
-            h(accion, valor);
-        }
+        for (let h of _handlers) { h(accion, valor); }
     }
-
     try {
-        if (control && control.simmessages) {
-            control.simmessages.onReceived("amogus", function (data: Buffer) {
-                let str = data.toString();
-                let sep = str.indexOf("|");
-                if (sep >= 0) {
-                    let acc = str.substr(0, sep);
-                    let val = str.substr(sep + 1);
-                    despachar(acc, val);
-                }
-            });
-        }
+        control.simmessages.onReceived("amogus", function (data: Buffer) {
+            let str = data.toString();
+            let sep = str.indexOf("|");
+            if (sep >= 0) { despachar(str.substr(0, sep), str.substr(sep + 1)); }
+        });
     } catch (e) {}
 }
 
-// Prefijos P2P únicos para evitar colisiones con el Asset Pack o variables existentes
 namespace SpriteKind {
     export const P2PLocal = SpriteKind.create()
     export const P2PRival = SpriteKind.create()
     export const P2PCadaver = SpriteKind.create()
+    export const UI_Button = SpriteKind.create()
 }
 
-// --- Tiles Pixel Art (16x16) para el Mapa Polus ---
-
-// 1. Suelo Metálico Interior
-const TILE_SUELO_INTERIOR = img`
-c c c c c c c c c c c c c c c c
-c d d d d d d d d d d d d d d c
-c d b b b b b b b b b b b b d c
-c d b c c c c c c c c c c b d c
-c d b c d d d d d d d d c b d c
-c d b c d b b b b b b d c b d c
-c d b c d b c c c c b d c b d c
-c d b c d b c d d c b d c b d c
-c d b c d b c d d c b d c b d c
-c d b c d b c c c c b d c b d c
-c d b c d b b b b b b d c b d c
-c d b c d d d d d d d d c b d c
-c d b c c c c c c c c c c b d c
-c d b b b b b b b b b b b b d c
-c d d d d d d d d d d d d d d c
-c c c c c c c c c c c c c c c c
-`
-
-// 2. Nieve Exterior de Polus
-const TILE_NIEVE = img`
-b b d b b b b d b b b b d b b b
-b b b b b b b b b b b b b b b b
-b d b b b d b b b b d b b b d b
-b b b b b b b b b b b b b b b b
-b b b d b b b b d b b b b b b b
-b b b b b b b b b b b b d b b b
-d b b b b b d b b b b b b b b b
-b b b b b b b b b b b b b b d b
-b b d b b b b d b b b b d b b b
-b b b b b b b b b b b b b b b b
-b d b b b d b b b b d b b b d b
-b b b b b b b b b b b b b b b b
-b b b d b b b b d b b b b b b b
-b b b b b b b b b b b b d b b b
-d b b b b b d b b b b b b b b b
-b b b b b b b b b b b b b b d b
-`
-
-// 3. Muro / Pared de la Base con Colisión
-const TILE_PARED = img`
-f f f f f f f f f f f f f f f f
-f b b b b b b b b b b b b b b f
-f b c c c c c c c c c c c c b f
-f b c 1 1 1 1 1 1 1 1 1 1 c b f
-f b c 1 b b b b b b b b 1 c b f
-f b c 1 b c c c c c c b 1 c b f
-f b c 1 b c 1 1 1 1 c b 1 c b f
-f b c 1 b c 1 b b 1 c b 1 c b f
-f b c 1 b c 1 b b 1 c b 1 c b f
-f b c 1 b c 1 1 1 1 c b 1 c b f
-f b c 1 b c c c c c c b 1 c b f
-f b c 1 b b b b b b b b 1 c b f
-f b c 1 1 1 1 1 1 1 1 1 1 c b f
-f b c c c c c c c c c c c c b f
-f b b b b b b b b b b b b b b f
-f f f f f f f f f f f f f f f f
-`
-
-// 4. Mesa de Reunión de Emergencia (Botón Rojo Central)
-const TILE_MESA = img`
-. . . . f f f f f f f f . . . .
-. . f f e e e e e e e e f f . .
-. f e e e e 2 2 2 2 e e e e f .
-. f e e e 2 2 2 2 2 2 e e e f .
-f e e e 2 2 4 4 4 4 2 2 e e e f
-f e e 2 2 4 4 4 4 4 4 2 2 e e f
-f e e 2 2 4 4 4 4 4 4 2 2 e e f
-f e e e 2 2 4 4 4 4 2 2 e e e f
-. f e e e 2 2 2 2 2 2 e e e f .
-. f e e e e 2 2 2 2 e e e e f .
-. . f f e e e e e e e e f f . .
-. . . . f f f f f f f f . . . .
-. . . . . . d d d d . . . . . .
-. . . . . . d d d d . . . . . .
-. . . . . . d d d d . . . . . .
-. . . . . . d d d d . . . . . .
-`
-
-// 5. Rejilla de Ventilación de Polus
-const TILE_VENT = img`
-f f f f f f f f f f f f f f f f
-f d d d d d d d d d d d d d d f
-f d f f f f f f f f f f f f d f
-f d f b b b b b b b b b b f d f
-f d f f f f f f f f f f f f d f
-f d f b b b b b b b b b b f d f
-f d f f f f f f f f f f f f d f
-f d f b b b b b b b b b b f d f
-f d f f f f f f f f f f f f d f
-f d f b b b b b b b b b b f d f
-f d f f f f f f f f f f f f d f
-f d f b b b b b b b b b b f d f
-f d f f f f f f f f f f f f d f
-f d d d d d d d d d d d d d d f
-f f f f f f f f f f f f f f f f
-. . . . . . . . . . . . . . . .
-`
-
-// --- Mapa Completo de Polus (32 ancho x 24 alto) ---
-// 1: Suelo Metálico | 2: Nieve Exterior | 3: Muro/Pared Sólida | 4: Mesa Emergencia | 5: Ventilación
-const MAPA_POLUS = img`
-3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3
-3 2 2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 3 2 2 2 2 2 2 2 2 2 2 3
-3 2 2 2 2 2 2 2 2 2 2 3 1 1 1 1 1 1 1 1 3 2 2 2 2 2 2 2 2 2 2 3
-3 2 2 2 2 2 2 2 2 2 2 3 1 1 1 1 1 1 1 1 3 2 2 2 2 2 2 2 2 2 2 3
-3 2 2 2 2 2 2 2 2 2 2 3 1 1 1 1 1 1 1 1 3 2 2 2 2 2 2 2 2 2 2 3
-3 2 2 2 2 2 2 2 2 2 2 3 3 3 3 1 1 3 3 3 3 2 2 2 2 2 2 2 2 2 2 3
-3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 3
-3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 3
-3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 3
-3 2 2 2 2 2 2 2 2 2 3 3 3 3 3 1 1 3 3 3 3 3 2 2 2 2 2 2 2 2 2 3
-3 2 3 3 3 3 3 3 3 2 3 1 1 1 1 1 1 1 1 1 1 3 2 3 3 3 3 3 3 3 2 3
-3 2 3 5 1 1 1 1 3 2 3 1 1 1 1 1 1 1 1 1 1 3 2 3 1 1 1 1 5 3 2 3
-3 2 3 1 1 1 1 1 1 1 1 1 1 1 1 4 4 1 1 1 1 1 1 1 1 1 1 1 1 3 2 3
-3 2 3 1 1 1 1 1 1 1 1 1 1 1 1 4 4 1 1 1 1 1 1 1 1 1 1 1 1 3 2 3
-3 2 3 1 1 1 1 1 3 2 3 1 1 1 1 1 1 1 1 1 1 3 2 3 1 1 1 1 1 3 2 3
-3 2 3 1 1 1 1 1 3 2 3 1 1 1 1 1 1 1 1 1 1 3 2 3 1 1 1 1 1 3 2 3
-3 2 3 3 3 3 3 3 3 2 3 3 3 3 3 1 1 3 3 3 3 3 2 3 3 3 3 3 3 3 2 3
-3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 3
-3 2 2 2 2 2 2 2 2 2 2 3 3 3 3 1 1 3 3 3 3 2 2 2 2 2 2 2 2 2 2 3
-3 2 2 2 2 2 2 2 2 2 2 3 1 1 1 1 1 1 1 1 3 2 2 2 2 2 2 2 2 2 2 3
-3 2 2 2 2 2 2 2 2 2 2 3 1 1 1 1 1 1 1 1 3 2 2 2 2 2 2 2 2 2 2 3
-3 2 2 2 2 2 2 2 2 2 2 3 1 1 1 1 1 1 5 1 3 2 2 2 2 2 2 2 2 2 2 3
-3 2 2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 3 2 2 2 2 2 2 2 2 2 2 3
-3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3
-`
-
-// --- Sprites de Jugadores (Pixel Art 16x16) ---
+// === Sprites de Jugadores ===
 const SPRITE_ROJO = img`
 . . . . . 2 2 2 2 2 . . . . . .
 . . . . 2 2 2 2 2 2 2 . . . . .
@@ -195,7 +49,6 @@ const SPRITE_ROJO = img`
 . . 4 4 4 4 . 4 4 4 4 . . . . .
 . . . . . . . . . . . . . . . .
 `
-
 const SPRITE_AZUL = img`
 . . . . . 8 8 8 8 8 . . . . . .
 . . . . 8 8 8 8 8 8 8 . . . . .
@@ -214,7 +67,6 @@ const SPRITE_AZUL = img`
 . . 6 6 6 6 . 6 6 6 6 . . . . .
 . . . . . . . . . . . . . . . .
 `
-
 const SPRITE_VERDE = img`
 . . . . . 7 7 7 7 7 . . . . . .
 . . . . 7 7 7 7 7 7 7 . . . . .
@@ -233,7 +85,6 @@ const SPRITE_VERDE = img`
 . . 6 6 6 6 . 6 6 6 6 . . . . .
 . . . . . . . . . . . . . . . .
 `
-
 const SPRITE_AMARILLO = img`
 . . . . . 5 5 5 5 5 . . . . . .
 . . . . 5 5 5 5 5 5 5 . . . . .
@@ -252,7 +103,6 @@ const SPRITE_AMARILLO = img`
 . . 4 4 4 4 . 4 4 4 4 . . . . .
 . . . . . . . . . . . . . . . .
 `
-
 const SPRITE_MUERTO = img`
 . . . . . . . . . . . . . . . .
 . . . . . . . . . . . . . . . .
@@ -271,7 +121,6 @@ const SPRITE_MUERTO = img`
 . . 4 4 4 4 . . . 4 4 4 4 . . .
 . . . . . . . . . . . . . . . .
 `
-
 const SPRITE_FANTASMA = img`
 . . . . . 1 1 1 1 1 . . . . . .
 . . . . 1 1 1 1 1 1 1 . . . . .
@@ -305,29 +154,17 @@ function obtenerColorNombre(idNum: number): string {
     return "Amarillo";
 }
 
-// Spawns ubicados dentro de la Nave (Dropship de Polus)
-function spawnX(idNum: number): number {
-    if (idNum == 1) return 216; // Col 13
-    if (idNum == 2) return 232; // Col 14
-    if (idNum == 3) return 280; // Col 17
-    return 296;                 // Col 18
+function dist(s1: Sprite, s2: Sprite): number {
+    return Math.sqrt((s1.x - s2.x) ** 2 + (s1.y - s2.y) ** 2);
 }
 
-function spawnY(idNum: number): number {
-    return 56; // Fila 3 en la Nave
-}
-
-// --- Variables de Estado ---
+// === Variables Globales ===
 let MiId = 1;
 let TotalJugadores = 2;
 let IdImpostor = 1;
 let SoyImpostor = false;
 let PartidaActiva = false;
-
-let Muerto1 = false;
-let Muerto2 = false;
-let Muerto3 = false;
-let Muerto4 = false;
+let Muertos = [false, false, false, false, false];
 
 let JugadorLocal: Sprite = null;
 let Rival1: Sprite = null;
@@ -335,69 +172,100 @@ let Rival2: Sprite = null;
 let Rival3: Sprite = null;
 let Rival4: Sprite = null;
 
-function cargarMapaPolus() {
-    scene.setTile(1, TILE_SUELO_INTERIOR, false);
-    scene.setTile(2, TILE_NIEVE, false);
-    scene.setTile(3, TILE_PARED, true);
-    scene.setTile(4, TILE_MESA, true);
-    scene.setTile(5, TILE_VENT, false);
-    scene.setTileMap(MAPA_POLUS, TileScale.Sixteen);
-}
+let KillBtnUI: Sprite = null;
+let TaskBtnUI: Sprite = null;
+let tareasCompletadas = 0;
+let totalTareas = 5;
 
-function cambiarJugadorLocal(nuevoId: number) {
-    if (nuevoId < 1 || nuevoId > 4) return;
-    MiId = nuevoId;
-    SoyImpostor = (MiId == IdImpostor);
-    iniciarPartida();
-}
+let misTareasActivas: string[] = [];
+
+// Carga Inicial
+tiles.setCurrentTilemap(tilemap`Level_0`);
 
 function iniciarPartida() {
     PartidaActiva = true;
 
-    // Cargar mapa de Polus con físicas de colisión
-    cargarMapaPolus();
+    tiles.setCurrentTilemap(tilemap`Level_1`);
 
-    if (JugadorLocal) {
-        sprites.destroy(JugadorLocal);
-    }
+    if (JugadorLocal) { sprites.destroy(JugadorLocal); }
     if (Rival1) { sprites.destroy(Rival1); Rival1 = null; }
     if (Rival2) { sprites.destroy(Rival2); Rival2 = null; }
     if (Rival3) { sprites.destroy(Rival3); Rival3 = null; }
     if (Rival4) { sprites.destroy(Rival4); Rival4 = null; }
+    if (KillBtnUI) { sprites.destroy(KillBtnUI); KillBtnUI = null; }
+    if (TaskBtnUI) { sprites.destroy(TaskBtnUI); TaskBtnUI = null; }
 
     JugadorLocal = sprites.create(obtenerSkin(MiId), SpriteKind.P2PLocal);
-    JugadorLocal.x = spawnX(MiId);
-    JugadorLocal.y = spawnY(MiId);
+    
+    // Fallback: usar una baldosa segura que exista en Level_1
+    // Si assets.tile`tile32` no existe en su proyecto, fallaría al encontrarla, pero placeOnRandomTile solo la ignora o usa el centro
+    let tileCentro = assets.tile`tile32`;
+    if (tileCentro) {
+        tiles.placeOnRandomTile(JugadorLocal, tileCentro);
+    } else {
+        JugadorLocal.x = 400;
+        JugadorLocal.y = 150;
+    }
+
     controller.moveSprite(JugadorLocal, 90, 90);
     scene.cameraFollowSprite(JugadorLocal);
 
-    if (TotalJugadores >= 2) {
-        if (MiId != 1) {
-            Rival1 = sprites.create(obtenerSkin(1), SpriteKind.P2PRival);
-            Rival1.x = spawnX(1); Rival1.y = spawnY(1);
-        }
-        if (MiId != 2) {
-            Rival2 = sprites.create(obtenerSkin(2), SpriteKind.P2PRival);
-            Rival2.x = spawnX(2); Rival2.y = spawnY(2);
-        }
-    }
-    if (TotalJugadores >= 3 && MiId != 3) {
-        Rival3 = sprites.create(obtenerSkin(3), SpriteKind.P2PRival);
-        Rival3.x = spawnX(3); Rival3.y = spawnY(3);
-    }
-    if (TotalJugadores >= 4 && MiId != 4) {
-        Rival4 = sprites.create(obtenerSkin(4), SpriteKind.P2PRival);
-        Rival4.x = spawnX(4); Rival4.y = spawnY(4);
-    }
+    if (TotalJugadores >= 2 && MiId != 1) { Rival1 = sprites.create(obtenerSkin(1), SpriteKind.P2PRival); Rival1.setPosition(-100,-100); }
+    if (TotalJugadores >= 2 && MiId != 2) { Rival2 = sprites.create(obtenerSkin(2), SpriteKind.P2PRival); Rival2.setPosition(-100,-100); }
+    if (TotalJugadores >= 3 && MiId != 3) { Rival3 = sprites.create(obtenerSkin(3), SpriteKind.P2PRival); Rival3.setPosition(-100,-100); }
+    if (TotalJugadores >= 4 && MiId != 4) { Rival4 = sprites.create(obtenerSkin(4), SpriteKind.P2PRival); Rival4.setPosition(-100,-100); }
 
-    anunciarRol();
+    crearUI();
+
+    if (SoyImpostor) {
+        game.splash("ERES EL IMPOSTOR", "Usa B para eliminar");
+    } else {
+        game.splash("ERES TRIPULANTE (" + obtenerColorNombre(MiId) + ")", "Usa A para tareas");
+    }
 }
 
-function anunciarRol() {
+function crearUI() {
     if (SoyImpostor) {
-        game.splash("ERES EL IMPOSTOR", "Presiona B cerca de un rival para eliminarlo");
+        KillBtnUI = sprites.create(img`
+. . . . f f f f . . . .
+. . f f 2 2 2 2 f f . .
+. f 2 2 2 2 2 2 2 2 f .
+f 2 2 2 f f f f 2 2 2 f
+f 2 2 f 1 1 1 1 f 2 2 f
+f 2 2 f 1 1 1 1 f 2 2 f
+f 2 2 f 1 1 1 1 f 2 2 f
+. f 2 2 2 2 2 2 2 2 f .
+. . f f 2 2 2 2 f f . .
+. . . . f f f f . . . .
+        `, SpriteKind.UI_Button);
+        KillBtnUI.setFlag(SpriteFlag.RelativeToCamera, true);
+        KillBtnUI.setPosition(140, 100);
+        KillBtnUI.z = 100;
     } else {
-        game.splash("ERES TRIPULANTE (" + obtenerColorNombre(MiId) + ")", "Completa tareas y sobrevive");
+        let posiblesTareas = ["tile44", "tile117", "tile85", "tile84", "tile112"];
+        misTareasActivas = [];
+        totalTareas = 3;
+        for (let i = 0; i < totalTareas; i++) {
+            let rndIdx = Math.randomRange(0, posiblesTareas.length - 1);
+            misTareasActivas.push(posiblesTareas[rndIdx]);
+            posiblesTareas.removeAt(rndIdx);
+        }
+        
+        TaskBtnUI = sprites.create(img`
+. . . . f f f f . . . .
+. . f f 5 5 5 5 f f . .
+. f 5 5 5 5 5 5 5 5 f .
+f 5 5 5 f f f f 5 5 5 f
+f 5 5 f 1 1 1 1 f 5 5 f
+f 5 5 f 1 1 1 1 f 5 5 f
+f 5 5 f 1 1 1 1 f 5 5 f
+. f 5 5 5 5 5 5 5 5 f .
+. . f f 5 5 5 5 f f . .
+. . . . f f f f . . . .
+        `, SpriteKind.UI_Button);
+        TaskBtnUI.setFlag(SpriteFlag.RelativeToCamera, true);
+        TaskBtnUI.setPosition(140, 100);
+        TaskBtnUI.z = 100;
     }
 }
 
@@ -409,38 +277,24 @@ function actualizarPosRival(idNum: number, xVal: number, yVal: number) {
 }
 
 function aplicarMuerte(idNum: number) {
-    if (idNum == 1) Muerto1 = true;
-    else if (idNum == 2) Muerto2 = true;
-    else if (idNum == 3) Muerto3 = true;
-    else if (idNum == 4) Muerto4 = true;
-
-    if (idNum == MiId) {
-        if (JugadorLocal) {
-            JugadorLocal.setImage(SPRITE_FANTASMA);
-            JugadorLocal.setKind(SpriteKind.P2PCadaver);
-            game.splash("¡HAS SIDO ASESINADO!");
-        }
-    } else if (idNum == 1 && Rival1) {
-        Rival1.setImage(SPRITE_MUERTO);
-        Rival1.setKind(SpriteKind.P2PCadaver);
-    } else if (idNum == 2 && Rival2) {
-        Rival2.setImage(SPRITE_MUERTO);
-        Rival2.setKind(SpriteKind.P2PCadaver);
-    } else if (idNum == 3 && Rival3) {
-        Rival3.setImage(SPRITE_MUERTO);
-        Rival3.setKind(SpriteKind.P2PCadaver);
-    } else if (idNum == 4 && Rival4) {
-        Rival4.setImage(SPRITE_MUERTO);
-        Rival4.setKind(SpriteKind.P2PCadaver);
-    }
+    Muertos[idNum] = true;
+    if (idNum == MiId && JugadorLocal) {
+        JugadorLocal.setImage(SPRITE_FANTASMA);
+        JugadorLocal.setKind(SpriteKind.P2PCadaver);
+        game.splash("¡HAS SIDO ASESINADO!");
+    } else if (idNum == 1 && Rival1) { Rival1.setImage(SPRITE_MUERTO); Rival1.setKind(SpriteKind.P2PCadaver); }
+    else if (idNum == 2 && Rival2) { Rival2.setImage(SPRITE_MUERTO); Rival2.setKind(SpriteKind.P2PCadaver); }
+    else if (idNum == 3 && Rival3) { Rival3.setImage(SPRITE_MUERTO); Rival3.setKind(SpriteKind.P2PCadaver); }
+    else if (idNum == 4 && Rival4) { Rival4.setImage(SPRITE_MUERTO); Rival4.setKind(SpriteKind.P2PCadaver); }
 }
 
-// Receptor de comandos de Red P2P y UI
+// === LÓGICA DE RED ===
 redP2P.alRecibir(function (accion: string, valor: string) {
     if (accion == "set_player") {
         let pId = parseInt(valor);
         if (pId >= 1 && pId <= 4) {
-            cambiarJugadorLocal(pId);
+            MiId = pId;
+            SoyImpostor = (MiId == IdImpostor);
         }
     } else if (accion == "setup_partida") {
         let partes = valor.split(",");
@@ -453,45 +307,75 @@ redP2P.alRecibir(function (accion: string, valor: string) {
         let partesPos = valor.split(",");
         if (partesPos.length >= 3) {
             let idRemoto = parseInt(partesPos[0]);
-            if (idRemoto != MiId) {
-                actualizarPosRival(idRemoto, parseFloat(partesPos[1]), parseFloat(partesPos[2]));
-            }
+            if (idRemoto != MiId) { actualizarPosRival(idRemoto, parseFloat(partesPos[1]), parseFloat(partesPos[2])); }
         }
     } else if (accion == "kill") {
-        let idMuerto = parseInt(valor);
-        aplicarMuerte(idMuerto);
+        aplicarMuerte(parseInt(valor));
+    } else if (accion == "task_win") {
+        game.splash("¡TRIPULANTES GANAN!", "Completaron todas las tareas");
+        game.reset();
     }
 });
 
-// --- Ataque del Impostor con botón B ---
-controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (SoyImpostor && PartidaActiva && JugadorLocal) {
-        if (Rival1 && JugadorLocal.overlapsWith(Rival1) && !Muerto1) {
-            aplicarMuerte(1);
-            redP2P.enviarDatos("kill", "1");
-            game.splash("Eliminaste a Rojo");
-        } else if (Rival2 && JugadorLocal.overlapsWith(Rival2) && !Muerto2) {
-            aplicarMuerte(2);
-            redP2P.enviarDatos("kill", "2");
-            game.splash("Eliminaste a Azul");
-        } else if (Rival3 && JugadorLocal.overlapsWith(Rival3) && !Muerto3) {
-            aplicarMuerte(3);
-            redP2P.enviarDatos("kill", "3");
-            game.splash("Eliminaste a Verde");
-        } else if (Rival4 && JugadorLocal.overlapsWith(Rival4) && !Muerto4) {
-            aplicarMuerte(4);
-            redP2P.enviarDatos("kill", "4");
-            game.splash("Eliminaste a Amarillo");
+// === CONTROLES E INTERACCIÓN ===
+controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (!SoyImpostor && PartidaActiva && !Muertos[MiId]) {
+        let completada = false;
+        
+        for (let t of misTareasActivas) {
+            let tileObj = assets.tile(t);
+            if (tileObj && JugadorLocal.tileKindAt(TileDirection.Center, tileObj)) {
+                misTareasActivas.removeElement(t);
+                completada = true;
+                break;
+            }
+            if (tileObj && JugadorLocal.tileKindAt(TileDirection.Top, tileObj)) {
+                misTareasActivas.removeElement(t);
+                completada = true;
+                break;
+            }
+        }
+
+        if (completada) {
+            tareasCompletadas++;
+            JugadorLocal.sayText("Tarea " + tareasCompletadas + "/" + totalTareas, 1000);
+            if (tareasCompletadas >= totalTareas) {
+                redP2P.enviarDatos("task_win", "1");
+                game.splash("¡TODAS LAS TAREAS COMPLETAS!");
+            }
         }
     }
 });
 
-// --- Sincronización continua de posición (cada 50ms) ---
-game.onUpdateInterval(50, function () {
-    if (PartidaActiva && JugadorLocal) {
-        redP2P.enviarDatos("pos", JugadorLocal.x + "," + JugadorLocal.y);
+controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (SoyImpostor && PartidaActiva && JugadorLocal && !Muertos[MiId]) {
+        let killRange = 35;
+        if (Rival1 && !Muertos[1] && dist(JugadorLocal, Rival1) <= killRange) {
+            aplicarMuerte(1); redP2P.enviarDatos("kill", "1");
+        } else if (Rival2 && !Muertos[2] && dist(JugadorLocal, Rival2) <= killRange) {
+            aplicarMuerte(2); redP2P.enviarDatos("kill", "2");
+        } else if (Rival3 && !Muertos[3] && dist(JugadorLocal, Rival3) <= killRange) {
+            aplicarMuerte(3); redP2P.enviarDatos("kill", "3");
+        } else if (Rival4 && !Muertos[4] && dist(JugadorLocal, Rival4) <= killRange) {
+            aplicarMuerte(4); redP2P.enviarDatos("kill", "4");
+        }
     }
 });
 
-// Arranca inmediatamente en el Mapa Polus
-iniciarPartida();
+game.onUpdateInterval(50, function () {
+    if (PartidaActiva && JugadorLocal && !Muertos[MiId]) {
+        redP2P.enviarDatos("pos", MiId + "," + JugadorLocal.x + "," + JugadorLocal.y);
+    }
+});
+
+game.onUpdate(function() {
+    if (SoyImpostor && KillBtnUI) {
+        let puedeMatar = false;
+        let killRange = 35;
+        if (Rival1 && !Muertos[1] && dist(JugadorLocal, Rival1) <= killRange) puedeMatar = true;
+        if (Rival2 && !Muertos[2] && dist(JugadorLocal, Rival2) <= killRange) puedeMatar = true;
+        if (Rival3 && !Muertos[3] && dist(JugadorLocal, Rival3) <= killRange) puedeMatar = true;
+        if (Rival4 && !Muertos[4] && dist(JugadorLocal, Rival4) <= killRange) puedeMatar = true;
+        KillBtnUI.y = puedeMatar ? 98 + Math.sin(game.runtime()/100)*2 : 100;
+    }
+});
