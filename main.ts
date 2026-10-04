@@ -368,6 +368,15 @@ redP2P.alRecibir(function (accion: string, valor: string) {
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     if (!PartidaActiva && MiId == 1) {
         redP2P.enviarDatos("req_start", "1");
+        // Fallback para probar offline dentro del editor de MakeCode
+        setTimeout(function() {
+            if (!PartidaActiva) {
+                TotalJugadores = 1;
+                IdImpostor = 1;
+                SoyImpostor = true;
+                iniciarPartida();
+            }
+        }, 500);
         return;
     }
 
