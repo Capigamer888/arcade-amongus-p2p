@@ -95,8 +95,11 @@
     <!-- ÁREA CENTRAL: PANTALLA DE JUEGO Y BARRA DOCK ESTILO KRUNKER -->
     <main class="center-viewport">
       
-      <!-- Marco del juego con overlay "Click to Play" -->
-      <div class="game-frame-wrapper" id="frameWrapper">
+      <!-- Marco del juego -->
+      <div class="game-frame-wrapper" id="frameWrapper" onmousedown="document.getElementById('focusPrompt').style.display='none';">
+        <div id="focusPrompt" style="position:absolute; top:12px; left:50%; transform:translateX(-50%); background:rgba(239, 68, 68, 0.9); color:white; padding:6px 16px; border-radius:12px; font-size:13px; font-weight:bold; z-index:10; pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,0.5); border: 2px solid #f87171;">
+          ¡HAZ CLIC AQUÍ DENTRO PARA ACTIVAR LOS CONTROLES!
+        </div>
         
         
         <div class="click-overlay" id="loadingOverlay" style="background: #0b1120; z-index: 50; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 24px; text-align: center;">
