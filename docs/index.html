@@ -411,7 +411,22 @@
         }
         const sep = text.indexOf("|");
         if (sep >= 0) {
-          procesarSalidaJuego(text.substring(0, sep), text.substring(sep + 1));
+          let acc = text.substring(0, sep);
+          let val = text.substring(sep + 1);
+          if (acc === "pos") {
+             let mkId = parseInt(val.split(",")[0]);
+             if (mkId !== miId) {
+                if (!window.lastSync || Date.now() - window.lastSync > 2000) {
+                    window.lastSync = Date.now();
+                    enviarAlJuego("set_player", String(miId));
+                }
+             }
+
+
+
+
+          }
+          procesarSalidaJuego(acc, val);
         }
         return;
       }
