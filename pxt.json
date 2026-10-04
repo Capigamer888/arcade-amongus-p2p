@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "description": "Among Us P2P Multiplayer in MakeCode Arcade",
   "dependencies": {
-    "device": "*",
-    "status-bar": "github:microsoft/pxt-status-bar"
+    "device": "*"
   },
   "files": [
     "main.blocks",
