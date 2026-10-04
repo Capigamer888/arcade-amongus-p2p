@@ -197,6 +197,7 @@ let TotalJugadores = 2;
 let IdImpostor = 1;
 let SoyImpostor = false;
 let PartidaActiva = false;
+let PartidaTerminada = false;
 let Muertos = [false, false, false, false, false];
 
 let JugadorLocal: Sprite = null;
@@ -208,15 +209,17 @@ let Rival4: Sprite = null;
 let KillBtnUI: Sprite = null;
 let TaskBtnUI: Sprite = null;
 let tareasCompletadas = 0;
-let totalTareas = 5;
+let totalTareas = 3;
+let cooldownKill = 0;
 
-let misTareasActivas: string[] = [];
+let misTareasActivas: Image[] = [];
 
 // Carga Inicial
 tiles.setCurrentTilemap(tilemap`Level_0`);
 
 function iniciarPartida() {
     PartidaActiva = true;
+    PartidaTerminada = false;
 
     tiles.setCurrentTilemap(tilemap`Level_1`);
 
@@ -231,7 +234,6 @@ function iniciarPartida() {
     JugadorLocal = sprites.create(obtenerSkin(MiId), SpriteKind.P2PLocal);
     
     // Fallback: usar una baldosa segura que exista en Level_1
-    // Si assets.tile`tile32` no existe en su proyecto, fallaría al encontrarla, pero placeOnRandomTile solo la ignora o usa el centro
     let tileCentro = assets.tile`tile32`;
     if (tileCentro) {
         tiles.placeOnRandomTile(JugadorLocal, tileCentro);
@@ -272,10 +274,16 @@ f 2 2 f 1 1 1 1 f 2 2 f
 . . . . f f f f . . . .
         `, SpriteKind.UI_Button);
         KillBtnUI.setFlag(SpriteFlag.RelativeToCamera, true);
-        KillBtnUI.setPosition(140, 100);
+        KillBtnUI.setPosition(140, 120);
         KillBtnUI.z = 100;
     } else {
-        let posiblesTareas = ["tile44", "tile117", "tile85", "tile84", "tile112"];
+        let posiblesTareas: Image[] = [
+            assets.tile`tile44`,
+            assets.tile`tile117`,
+            assets.tile`tile85`,
+            assets.tile`tile84`,
+            assets.tile`tile112`
+        ];
         misTareasActivas = [];
         totalTareas = 3;
         for (let i = 0; i < totalTareas; i++) {
@@ -297,7 +305,7 @@ f 5 5 f 1 1 1 1 f 5 5 f
 . . . . f f f f . . . .
         `, SpriteKind.UI_Button);
         TaskBtnUI.setFlag(SpriteFlag.RelativeToCamera, true);
-        TaskBtnUI.setPosition(140, 100);
+        TaskBtnUI.setPosition(140, 120);
         TaskBtnUI.z = 100;
     }
 }
@@ -314,11 +322,25 @@ function aplicarMuerte(idNum: number) {
     if (idNum == MiId && JugadorLocal) {
         JugadorLocal.setImage(SPRITE_FANTASMA);
         JugadorLocal.setKind(SpriteKind.P2PCadaver);
+        JugadorLocal.setFlag(SpriteFlag.GhostThroughWalls, true);
+        controller.moveSprite(JugadorLocal, 150, 150);
         game.splash("¡HAS SIDO ASESINADO!");
-    } else if (idNum == 1 && Rival1) { Rival1.setImage(SPRITE_MUERTO); Rival1.setKind(SpriteKind.P2PCadaver); }
-    else if (idNum == 2 && Rival2) { Rival2.setImage(SPRITE_MUERTO); Rival2.setKind(SpriteKind.P2PCadaver); }
-    else if (idNum == 3 && Rival3) { Rival3.setImage(SPRITE_MUERTO); Rival3.setKind(SpriteKind.P2PCadaver); }
-    else if (idNum == 4 && Rival4) { Rival4.setImage(SPRITE_MUERTO); Rival4.setKind(SpriteKind.P2PCadaver); }
+        
+        // Revelar fantasmas de otros que hayan muerto antes
+        if (Rival1 && Muertos[1]) Rival1.setFlag(SpriteFlag.Invisible, false);
+        if (Rival2 && Muertos[2]) Rival2.setFlag(SpriteFlag.Invisible, false);
+        if (Rival3 && Muertos[3]) Rival3.setFlag(SpriteFlag.Invisible, false);
+        if (Rival4 && Muertos[4]) Rival4.setFlag(SpriteFlag.Invisible, false);
+    } else {
+        let rVal = idNum == 1 ? Rival1 : (idNum == 2 ? Rival2 : (idNum == 3 ? Rival3 : Rival4));
+        if (rVal) {
+            rVal.setImage(SPRITE_FANTASMA); 
+            rVal.setKind(SpriteKind.P2PCadaver);
+            if (!Muertos[MiId]) {
+                rVal.setFlag(SpriteFlag.Invisible, true);
+            }
+        }
+    }
 }
 
 // === LÓGICA DE RED ===
@@ -345,24 +367,21 @@ redP2P.alRecibir(function (accion: string, valor: string) {
     } else if (accion == "kill") {
         aplicarMuerte(parseInt(valor));
     } else if (accion == "task_win") {
-        game.splash("¡TRIPULANTES GANAN!", "Completaron todas las tareas");
-        game.reset();
+        PartidaTerminada = true;
+        game.over(SoyImpostor ? false : true, effects.confetti);
+    } else if (accion == "impostor_win") {
+        PartidaTerminada = true;
+        game.over(SoyImpostor ? true : false, effects.melt);
     }
 });
 
 // === CONTROLES E INTERACCIÓN ===
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (!SoyImpostor && PartidaActiva && !Muertos[MiId]) {
+    if (!SoyImpostor && PartidaActiva && !PartidaTerminada && !Muertos[MiId]) {
         let completada = false;
         
         for (let t of misTareasActivas) {
-            let tileObj = assets.tile(t);
-            if (tileObj && JugadorLocal.tileKindAt(TileDirection.Center, tileObj)) {
-                misTareasActivas.removeElement(t);
-                completada = true;
-                break;
-            }
-            if (tileObj && JugadorLocal.tileKindAt(TileDirection.Top, tileObj)) {
+            if (JugadorLocal.tileKindAt(TileDirection.Center, t) || JugadorLocal.tileKindAt(TileDirection.Top, t)) {
                 misTareasActivas.removeElement(t);
                 completada = true;
                 break;
@@ -374,41 +393,79 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
             JugadorLocal.sayText("Tarea " + tareasCompletadas + "/" + totalTareas, 1000);
             if (tareasCompletadas >= totalTareas) {
                 redP2P.enviarDatos("task_win", "1");
-                game.splash("¡TODAS LAS TAREAS COMPLETAS!");
+                PartidaTerminada = true;
+                game.over(true, effects.confetti);
             }
         }
     }
 });
 
 controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
-    if (SoyImpostor && PartidaActiva && JugadorLocal && !Muertos[MiId]) {
+    if (SoyImpostor && PartidaActiva && !PartidaTerminada && JugadorLocal && !Muertos[MiId]) {
+        if (game.runtime() < cooldownKill) return; // Cooldown kill
+
         let killRange = 35;
+        let mato = false;
         if (Rival1 && !Muertos[1] && dist(JugadorLocal, Rival1) <= killRange) {
-            aplicarMuerte(1); redP2P.enviarDatos("kill", "1");
+            aplicarMuerte(1); redP2P.enviarDatos("kill", "1"); mato = true;
         } else if (Rival2 && !Muertos[2] && dist(JugadorLocal, Rival2) <= killRange) {
-            aplicarMuerte(2); redP2P.enviarDatos("kill", "2");
+            aplicarMuerte(2); redP2P.enviarDatos("kill", "2"); mato = true;
         } else if (Rival3 && !Muertos[3] && dist(JugadorLocal, Rival3) <= killRange) {
-            aplicarMuerte(3); redP2P.enviarDatos("kill", "3");
+            aplicarMuerte(3); redP2P.enviarDatos("kill", "3"); mato = true;
         } else if (Rival4 && !Muertos[4] && dist(JugadorLocal, Rival4) <= killRange) {
-            aplicarMuerte(4); redP2P.enviarDatos("kill", "4");
+            aplicarMuerte(4); redP2P.enviarDatos("kill", "4"); mato = true;
+        }
+
+        if (mato) {
+            cooldownKill = game.runtime() + 10000; // 10 seg
         }
     }
 });
 
 game.onUpdateInterval(50, function () {
-    if (PartidaActiva && JugadorLocal && !Muertos[MiId]) {
+    if (PartidaActiva && JugadorLocal && !PartidaTerminada) {
         redP2P.enviarDatos("pos", MiId + "," + JugadorLocal.x + "," + JugadorLocal.y);
     }
 });
 
 game.onUpdate(function() {
+    if (!PartidaActiva || PartidaTerminada) return;
+
     if (SoyImpostor && KillBtnUI) {
         let puedeMatar = false;
         let killRange = 35;
-        if (Rival1 && !Muertos[1] && dist(JugadorLocal, Rival1) <= killRange) puedeMatar = true;
-        if (Rival2 && !Muertos[2] && dist(JugadorLocal, Rival2) <= killRange) puedeMatar = true;
-        if (Rival3 && !Muertos[3] && dist(JugadorLocal, Rival3) <= killRange) puedeMatar = true;
-        if (Rival4 && !Muertos[4] && dist(JugadorLocal, Rival4) <= killRange) puedeMatar = true;
-        KillBtnUI.y = puedeMatar ? 98 + Math.sin(game.runtime()/100)*2 : 100;
+        if (game.runtime() >= cooldownKill) {
+            if (Rival1 && !Muertos[1] && dist(JugadorLocal, Rival1) <= killRange) puedeMatar = true;
+            if (Rival2 && !Muertos[2] && dist(JugadorLocal, Rival2) <= killRange) puedeMatar = true;
+            if (Rival3 && !Muertos[3] && dist(JugadorLocal, Rival3) <= killRange) puedeMatar = true;
+            if (Rival4 && !Muertos[4] && dist(JugadorLocal, Rival4) <= killRange) puedeMatar = true;
+        }
+        KillBtnUI.y = puedeMatar ? 98 + Math.sin(game.runtime()/100)*2 : 120;
+    }
+
+    if (!SoyImpostor && TaskBtnUI && !Muertos[MiId]) {
+        let puedeHacerTarea = false;
+        for (let t of misTareasActivas) {
+            if (JugadorLocal.tileKindAt(TileDirection.Center, t) || JugadorLocal.tileKindAt(TileDirection.Top, t)) {
+                puedeHacerTarea = true;
+                break;
+            }
+        }
+        TaskBtnUI.y = puedeHacerTarea ? 98 + Math.sin(game.runtime()/100)*2 : 120;
+    }
+
+    // Chequear Victoria Impostor
+    if (SoyImpostor) {
+        let vivos = 0;
+        if (1 <= TotalJugadores && IdImpostor != 1 && !Muertos[1]) vivos++;
+        if (2 <= TotalJugadores && IdImpostor != 2 && !Muertos[2]) vivos++;
+        if (3 <= TotalJugadores && IdImpostor != 3 && !Muertos[3]) vivos++;
+        if (4 <= TotalJugadores && IdImpostor != 4 && !Muertos[4]) vivos++;
+        
+        if (TotalJugadores > 1 && vivos === 0) {
+            PartidaTerminada = true;
+            redP2P.enviarDatos("impostor_win", "1");
+            game.over(true, effects.melt);
+        }
     }
 });
