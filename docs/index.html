@@ -82,11 +82,17 @@
       
       <!-- Marco del juego con overlay "Click to Play" -->
       <div class="game-frame-wrapper" id="frameWrapper">
-        <div class="click-overlay" id="clickOverlay" onclick="iniciarEnfoqueJuego()">
+        
+        <div class="click-overlay" id="loadingOverlay" style="background: #0f172a; z-index: 50; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+          <div style="color: white; font-size: 24px; font-weight: bold; margin-bottom: 10px;">Cargando Juego...</div>
+          <div style="color: #94a3b8; font-size: 14px;">Descargando recursos (puede tardar unos segundos)</div>
+        </div>
+        <div class="click-overlay" id="clickOverlay" onclick="iniciarEnfoqueJuego()" style="display:none;">
+
           <div class="click-play-text">CLICK TO PLAY</div>
           <p style="color:#cbd5e1; font-weight:600; font-size:14px;">Haz clic para activar los controles del teclado</p>
         </div>
-        <iframe id="gameFrame" src="https://arcade.makecode.com/---run?id=github:Capigamer888/arcade-amongus-p2p"></iframe>
+        <iframe id="gameFrame" onload="onIframeLoaded()" src="https://arcade.makecode.com/---run?id=github:Capigamer888/arcade-amongus-p2p#9d8076c13a61c38e49313761b63406dc0d626086"></iframe>
       </div>
 
       <!-- BARRA DOCK INFERIOR (Krunker Style) -->
@@ -120,7 +126,7 @@
       <!-- Selector de URL de juego (Opcional) -->
       <span class="url-bar-toggle" onclick="toggleUrlBar()">Configuración avanzada de URL Arcade</span>
       <div class="url-bar" id="urlBar">
-        <input type="text" id="inputGameUrl" class="k-input" value="https://arcade.makecode.com/---run?id=github:Capigamer888/arcade-amongus-p2p" style="font-size:12px;">
+        <input type="text" id="inputGameUrl" class="k-input" value="https://arcade.makecode.com/---run?id=github:Capigamer888/arcade-amongus-p2p#9d8076c13a61c38e49313761b63406dc0d626086" style="font-size:12px;">
         <button class="k-btn" style="padding:6px 12px; font-size:12px; border-color:#64748b;" onclick="cambiarJuego()">Cargar</button>
       </div>
 
@@ -194,6 +200,14 @@
     const badgePlayers = document.getElementById("badgePlayers");
     const squadList = document.getElementById("squadList");
     const clickOverlay = document.getElementById("clickOverlay");
+
+    
+    function onIframeLoaded() {
+      const loadingOverlay = document.getElementById("loadingOverlay");
+      if (loadingOverlay) loadingOverlay.style.display = "none";
+      const clickOverlay = document.getElementById("clickOverlay");
+      if (clickOverlay) clickOverlay.style.display = "flex";
+    }
 
     let peer = null;
     let esHost = false;
