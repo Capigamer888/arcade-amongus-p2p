@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Among Us Arcade - Polus Outpost (P2P 4 Jugadores)</title>
+  <title>Among Us Arcade - The Skeld (P2P 4 Jugadores)</title>
   <link rel="stylesheet" href="style.css">
   <script src="peerjs.min.js"></script>
 </head>
@@ -17,7 +17,7 @@
     </div>
     <div class="nav-badges">
       <div class="pill-badge"><span class="dot"></span> WebRTC Direct P2P</div>
-      <div class="pill-badge">🗺️ Polus Outpost</div>
+      <div class="pill-badge">🗺️ The Skeld</div>
       <div id="badgePlayers" class="pill-badge" style="color:#6ee7b7; border-color: rgba(52,211,153,0.3);">👥 1/4 Jugadores</div>
     </div>
   </header>
@@ -168,7 +168,7 @@
 
       <!-- DETALLES DE MAPA -->
       <div class="panel-card">
-        <div class="panel-header">Base Polus</div>
+        <div class="panel-header">The Skeld</div>
         <p style="font-size:13px; color:var(--text-muted); line-height:1.5;">
           • <strong>Zona:</strong> Outpost Planetario Helado (32x24)<br>
           • <strong>Spawn:</strong> Nave Dropship Superior<br>
@@ -286,7 +286,7 @@
       
       const colores = ["", "Rojo", "Azul", "Verde", "Amarillo"];
       showToast(`¡Cambiado a Jugador ${id} (${colores[id]})!`);
-      statusText.innerText = `Controlando: Jugador ${id} (${colores[id]}) en Base Polus.`;
+      statusText.innerText = `Controlando: Jugador ${id} (${colores[id]}) en The Skeld.`;
     }
 
     function actualizarUISeleccion(id) {
@@ -421,7 +421,7 @@
         cardRoomCode.style.display = "block";
         btnCopy.style.display = "inline-flex";
         btnStart.style.display = "inline-flex";
-        statusText.innerText = "Sala lista en Polus. Comparte el código para que se unan hasta 3 tripulantes.";
+        statusText.innerText = "Sala lista en Skeld. Comparte el código para que se unan hasta 3 tripulantes.";
         showToast("¡Sala creada exitosamente!");
         actualizarUISquad();
       });
@@ -506,8 +506,8 @@
         });
       });
 
-      showToast("¡Partida comenzada en Polus!");
-      statusText.innerText = `¡Partida en marcha! ${total} jugadores en Polus Outpost. Impostor asignado en secreto.`;
+      showToast("¡Partida comenzada en Skeld!");
+      statusText.innerText = `¡Partida en marcha! ${total} jugadores en The Skeld. Impostor asignado en secreto.`;
     }
 
     // --- MODO INVITADO ---
@@ -543,7 +543,7 @@
             statusText.innerText = `Conectado como Jugador ${miId} (${colores[miId]}). Esperando inicio.`;
             actualizarUISquad();
           } else if (data.accion === "setup_partida") {
-            statusText.innerText = "¡Partida comenzada en Polus!";
+            statusText.innerText = "¡Partida comenzada en Skeld!";
             showToast("¡Partida iniciada!");
             enviarAlJuego(data);
           } else {
