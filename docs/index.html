@@ -390,7 +390,6 @@
       miId = id;
       actualizarUISeleccion(id);
       enviarAlJuego("set_player", String(id));
-      enviarAlJuego("setup_partida", `${id},4,1`);
       
       const colores = ["", "Rojo", "Azul", "Verde", "Amarillo"];
       showToast(`¡Cambiado a Jugador ${id} (${colores[id]})!`);
@@ -644,7 +643,6 @@
             
             // Asignar inmediatamente el personaje correspondiente en MakeCode
             enviarAlJuego("set_player", String(miId));
-            enviarAlJuego("setup_partida", `${miId},4,1`);
 
             const colores = ["", "Rojo", "Azul", "Verde", "Amarillo"];
             showToast(`¡Asignado como Jugador ${miId} (${colores[miId]})!`);
