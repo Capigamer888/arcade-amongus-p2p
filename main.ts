@@ -1,6 +1,11 @@
 // Among Us Arcade P2P - Mapa Skeld & Soporte 4 Jugadores
 
 namespace redP2P {
+    // Declarar control explícitamente por si el entorno local no lo encuentra
+    declare namespace control {
+        function onEvent(src: number, value: number, handler: () => void): void;
+    }
+
     //% shim=pxt::sendMessage
     export declare function _sendMsg(channel: string, message: Buffer, parentOnly?: boolean): void;
 
