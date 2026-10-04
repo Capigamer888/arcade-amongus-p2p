@@ -126,7 +126,7 @@
 
         <script>
           var _loadCount = 0;
-          var _estimatedTotal = 50;
+          var _estimatedTotal = 200;
           var _loadedDone = false;
 
           function updateLoadDisplay(resourceName) {
@@ -178,11 +178,11 @@
           // Incremento suave inicial mientras inicia el worker de MakeCode
           var _progressTick = setInterval(function() {
             if (_loadedDone) { clearInterval(_progressTick); return; }
-            if (_loadCount < 35) {
+            if (_loadCount < 150) {
               _loadCount++;
               updateLoadDisplay("");
             }
-          }, 320);
+          }, 80);
 
           // Si pasados 12 segundos el iframe no disparó onload pero el simulador está corriendo
           setTimeout(function() {
@@ -192,7 +192,7 @@
           }, 12000);
         </script>
 
-        <iframe id="gameFrame" onload="onIframeLoaded()" src="https://arcade.makecode.com/---run?id=S88970-13034-68799-63453"></iframe>
+        <iframe id="gameFrame" onload="onIframeLoaded()" src="https://arcade.makecode.com/---run?id=github:Capigamer888/arcade-amongus-p2p"></iframe>
       </div>
 
       <!-- BARRA DOCK INFERIOR (Krunker Style) -->
