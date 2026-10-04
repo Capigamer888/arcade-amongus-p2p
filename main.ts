@@ -181,7 +181,7 @@ let misTareasActivas: Image[] = [];
 function cargarHub() {
     PartidaActiva = false;
     PartidaTerminada = false;
-    tiles.setCurrentTilemap(tilemap`Level_0`);
+    tiles.setCurrentTilemap(assets.tilemap`Level_0`);
     scene.setBackgroundColor(11); // Fondo celeste
 
     if (KillBtnUI) { sprites.destroy(KillBtnUI); KillBtnUI = null; }
@@ -212,7 +212,7 @@ cargarHub();
 function iniciarPartida() {
     PartidaActiva = true;
     PartidaTerminada = false;
-    tiles.setCurrentTilemap(tilemap`Level_2`);
+    tiles.setCurrentTilemap(assets.tilemap`Level_2`);
     scene.setBackgroundColor(15); // Fondo negro para The Skeld
 
     if (KillBtnUI) { sprites.destroy(KillBtnUI); KillBtnUI = null; }
