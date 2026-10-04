@@ -185,6 +185,21 @@ def iniciar_partida():
 
     scene.set_background_color(15)
 
+    if JugadorLocal:
+        sprites.destroy(JugadorLocal)
+    if Rival1:
+        sprites.destroy(Rival1)
+        Rival1 = None
+    if Rival2:
+        sprites.destroy(Rival2)
+        Rival2 = None
+    if Rival3:
+        sprites.destroy(Rival3)
+        Rival3 = None
+    if Rival4:
+        sprites.destroy(Rival4)
+        Rival4 = None
+
     JugadorLocal = sprites.create(obtener_skin(MiId), SpriteKind.JugadorLocal)
     JugadorLocal.x = spawn_x(MiId)
     JugadorLocal.y = spawn_y(MiId)
@@ -312,3 +327,7 @@ def sincronizar_posicion():
         redOnline.enviar_datos("pos", str(JugadorLocal.x) + "," + str(JugadorLocal.y))
 
 game.on_update_interval(50, sincronizar_posicion)
+
+# Iniciar de inmediato el juego para que la pantalla NUNCA quede en negro
+iniciar_partida()
+

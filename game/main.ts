@@ -171,6 +171,14 @@ function iniciarPartida() {
     PartidaActiva = true;
     scene.setBackgroundColor(15);
 
+    if (JugadorLocal) {
+        sprites.destroy(JugadorLocal);
+    }
+    if (Rival1) { sprites.destroy(Rival1); Rival1 = null; }
+    if (Rival2) { sprites.destroy(Rival2); Rival2 = null; }
+    if (Rival3) { sprites.destroy(Rival3); Rival3 = null; }
+    if (Rival4) { sprites.destroy(Rival4); Rival4 = null; }
+
     JugadorLocal = sprites.create(obtenerSkin(MiId), SpriteKind.JugadorLocal);
     JugadorLocal.x = spawnX(MiId);
     JugadorLocal.y = spawnY(MiId);
@@ -296,3 +304,7 @@ game.onUpdateInterval(50, function () {
         redOnline.enviarDatos("pos", JugadorLocal.x + "," + JugadorLocal.y);
     }
 });
+
+// Iniciar de inmediato el juego para que la pantalla NUNCA quede en negro
+iniciarPartida();
+

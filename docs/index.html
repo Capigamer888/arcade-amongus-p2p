@@ -19,6 +19,11 @@
     </div>
     <p id="status">Estado: Desconectado. Crea una sala o únete a una existente.</p>
     <div id="playerList"></div>
+    <div style="margin-top: 10px; font-size: 13px; display: flex; justify-content: center; gap: 6px; align-items: center;">
+      <label for="inputGameUrl" style="color:#aaa;">Juego Arcade:</label>
+      <input type="text" id="inputGameUrl" value="https://arcade.makecode.com/---run?id=S14186-83763-41702-88753" style="width: 380px; padding: 4px 8px; font-size: 12px;">
+      <button onclick="cambiarJuego()" style="padding: 4px 12px; font-size: 12px; background-color: #424242;">Recargar</button>
+    </div>
   </header>
 
   <main>
@@ -31,6 +36,19 @@
     const btnStart = document.getElementById("btnStart");
     const btnCopy = document.getElementById("btnCopy");
     const playerList = document.getElementById("playerList");
+
+    function cambiarJuego() {
+      let val = document.getElementById("inputGameUrl").value.trim();
+      if (!val) return;
+      if (val.includes("arcade.makecode.com/") && !val.includes("---run")) {
+        const idMatch = val.match(/([S0-9A-Za-z_-]{10,})/);
+        if (idMatch) {
+          val = "https://arcade.makecode.com/---run?id=" + idMatch[1];
+          document.getElementById("inputGameUrl").value = val;
+        }
+      }
+      iframe.src = val;
+    }
 
     let peer = null;
     let esHost = false;
