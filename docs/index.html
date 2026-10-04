@@ -353,12 +353,6 @@
         broadcast: true,
         data: new Uint8Array(encoded)
       };
-      const msgSimArr = {
-        type: "messagepacket",
-        channel: "amogus",
-        broadcast: true,
-        data: Array.from(encoded)
-      };
       const msgDirecto = {
         canal: "amogus_in",
         accion: accion,
@@ -369,7 +363,6 @@
         if (!win) return;
         try {
           win.postMessage(msgSimUint, "*");
-          win.postMessage(msgSimArr, "*");
           win.postMessage(msgDirecto, "*");
         } catch (e) {}
         try {
