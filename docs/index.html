@@ -159,8 +159,9 @@
             setTimeout(function() {
               var lo = document.getElementById("loadingOverlay");
               if (lo) lo.style.display = "none";
-              var co = document.getElementById("clickOverlay");
-              if (co) co.style.display = "flex";
+              // Focus iframe directly instead of showing clickOverlay
+              var iframe = document.getElementById("gameFrame");
+              if (iframe && iframe.contentWindow) iframe.contentWindow.focus();
             }, 600);
           }
 
@@ -433,6 +434,10 @@
     });
 
     function procesarSalidaJuego(accion, valor) {
+      if (accion === "req_start" && esHost) {
+        iniciarPartidaHost();
+        return;
+      }
       if (esHost) {
         if (accion === "pos") {
           const payload = { canal: "amogus_in", accion: "pos", valor: "1," + valor };

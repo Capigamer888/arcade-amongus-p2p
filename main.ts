@@ -17,8 +17,8 @@ namespace redP2P {
                 let str = data.toString();
                 let sep = str.indexOf("|");
                 if (sep >= 0) {
-                    let acc = str.substring(0, sep);
-                    let val = str.substring(sep + 1);
+                    let acc = str.substr(0, sep);
+                    let val = str.substr(sep + 1);
                     for(let h of _handlers) { h(acc, val); }
                 }
             });
@@ -366,6 +366,11 @@ redP2P.alRecibir(function (accion: string, valor: string) {
 });
 
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (!PartidaActiva && MiId == 1) {
+        redP2P.enviarDatos("req_start", "1");
+        return;
+    }
+
     if (!SoyImpostor && PartidaActiva && !PartidaTerminada && !Muertos[MiId]) {
         let completada = false;
         
@@ -457,3 +462,6 @@ game.onUpdate(function() {
         }
     }
 });
+
+MiId = 1;
+cargarHub();
