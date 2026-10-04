@@ -3,19 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Among Us Arcade - Pantallas Separadas P2P</title>
+  <title>Among Us Arcade - Pantallas Separadas P2P (Hasta 4 Jugadores)</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
   <header>
-    <h1>Among Us Arcade (Pantallas Separadas)</h1>
+    <h1>Among Us Arcade (Pantallas Separadas - 4 Jugadores)</h1>
     <div class="controls">
       <button id="btnHost" onclick="crearSala()">1. Crear Sala (Host)</button>
       <input type="text" id="inputSala" placeholder="Pegar código de sala">
       <button id="btnJoin" onclick="unirseASala()">2. Unirse (Invitado)</button>
+      <button id="btnCopy" style="display:none; background-color:#1976d2;" onclick="copiarCodigo()">📋 Copiar Código</button>
+      <button id="btnStart" style="display:none; background-color:#2e7d32;" onclick="iniciarPartidaHost()">▶ Iniciar Partida (1/4)</button>
     </div>
     <p id="status">Estado: Desconectado. Crea una sala o únete a una existente.</p>
+    <div id="playerList"></div>
   </header>
 
   <main>
@@ -25,8 +28,22 @@
   <script>
     const iframe = document.getElementById("gameFrame");
     const statusText = document.getElementById("status");
+    const btnStart = document.getElementById("btnStart");
+    const btnCopy = document.getElementById("btnCopy");
+    const playerList = document.getElementById("playerList");
+
     let peer = null;
-    let conn = null;
+    let esHost = false;
+    let miId = null;
+    let partidaIniciada = false;
+    let salaId = "";
+
+    // Para el Host: clientes conectados { peerId: { id: 2/3/4, conn: c } }
+    let clientes = {};
+    let proximoId = 2; // 1 es el Host
+
+    // Para el Invitado: conexión con el Host
+    let hostConn = null;
 
     function enviarAlJuego(msg) {
       if (!iframe.contentWindow) return;
@@ -40,50 +57,160 @@
 
     // Escuchar eventos que emite MakeCode desde el iframe
     window.addEventListener("message", (event) => {
-      if (event.data && event.data.canal === "amogus_out" && conn && conn.open) {
-        conn.send(event.data);
+      const d = event.data;
+      if (!d || d.canal !== "amogus_out") return;
+
+      if (esHost) {
+        if (d.accion === "pos") {
+          const payload = { canal: "amogus_in", accion: "pos", valor: "1," + d.valor };
+          broadcastAClientes(payload);
+        } else if (d.accion === "kill") {
+          const payload = { canal: "amogus_in", accion: "kill", valor: d.valor };
+          broadcastAClientes(payload);
+        }
+      } else {
+        if (hostConn && hostConn.open) {
+          hostConn.send(d);
+        }
       }
     });
 
-    function setupDataHandlers(connection, esHost) {
-      conn = connection;
-      statusText.innerText = "¡Conexión P2P establecida! La partida ha comenzado.";
-      
-      setTimeout(() => {
-        enviarAlJuego({
-          canal: "amogus_in",
-          accion: "setup_red",
-          valor: esHost ? "host" : "cliente"
-        });
-      }, 1000);
-
-      conn.on("data", (data) => {
-        enviarAlJuego({
-          canal: "amogus_in",
-          accion: data.accion,
-          valor: data.valor
-        });
-      });
-
-      conn.on("close", () => {
-        statusText.innerText = "El otro jugador se ha desconectado.";
+    function broadcastAClientes(msg, ignorarPeerId = null) {
+      Object.keys(clientes).forEach(pid => {
+        if (pid !== ignorarPeerId) {
+          const c = clientes[pid].conn;
+          if (c && c.open) {
+            c.send(msg);
+          }
+        }
       });
     }
 
+    function actualizarUIJugadores() {
+      const total = 1 + Object.keys(clientes).length;
+      btnStart.innerText = `▶ Iniciar Partida (${total}/4)`;
+      let html = `<div style="margin-top:6px; color:#a5d6a7;"><strong>Jugadores en sala (${total}/4):</strong><br>`;
+      html += `• Jugador 1 (Rojo - Host) [Tú]<br>`;
+      Object.keys(clientes).forEach(pid => {
+        const id = clientes[pid].id;
+        const color = id === 2 ? "Azul" : id === 3 ? "Verde" : "Amarillo";
+        html += `• Jugador ${id} (${color}) [Conectado]<br>`;
+      });
+      html += `</div>`;
+      playerList.innerHTML = html;
+    }
+
+    function copiarCodigo() {
+      if (salaId) {
+        navigator.clipboard.writeText(salaId).then(() => {
+          alert("¡Código de sala copiado!");
+        }).catch(() => {
+          prompt("Copia el código manualmente:", salaId);
+        });
+      }
+    }
+
+    // --- MODO HOST ---
     function crearSala() {
-      statusText.innerText = "Generando sala...";
+      statusText.innerText = "Generando sala P2P...";
+      esHost = true;
+      miId = 1;
       peer = new Peer();
 
       peer.on("open", (id) => {
-        statusText.innerText = "Sala lista. Comparte este código: " + id;
-        navigator.clipboard.writeText(id).catch(() => {});
+        salaId = id;
+        statusText.innerText = "Sala lista. Comparte el código con hasta 3 amigos.";
+        btnStart.style.display = "inline-block";
+        btnCopy.style.display = "inline-block";
+        actualizarUIJugadores();
       });
 
       peer.on("connection", (c) => {
-        setupDataHandlers(c, true);
+        const total = 1 + Object.keys(clientes).length;
+        if (total >= 4 || partidaIniciada) {
+          c.on("open", () => {
+            c.send({ canal: "amogus_in", accion: "error", valor: "Sala llena o en partida" });
+            c.close();
+          });
+          return;
+        }
+
+        const idAsignado = proximoId++;
+        c.on("open", () => {
+          clientes[c.peer] = { id: idAsignado, conn: c };
+          actualizarUIJugadores();
+
+          // Notificar al invitado de su ID
+          c.send({
+            canal: "amogus_in",
+            accion: "bienvenida",
+            valor: idAsignado
+          });
+
+          c.on("data", (data) => {
+            if (data.accion === "pos") {
+              const payload = {
+                canal: "amogus_in",
+                accion: "pos",
+                valor: idAsignado + "," + data.valor
+              };
+              enviarAlJuego(payload);
+              broadcastAClientes(payload, c.peer);
+            } else if (data.accion === "kill") {
+              const payload = {
+                canal: "amogus_in",
+                accion: "kill",
+                valor: data.valor
+              };
+              enviarAlJuego(payload);
+              broadcastAClientes(payload, c.peer);
+            }
+          });
+
+          c.on("close", () => {
+            delete clientes[c.peer];
+            actualizarUIJugadores();
+          });
+        });
       });
     }
 
+    function iniciarPartidaHost() {
+      const total = 1 + Object.keys(clientes).length;
+      if (total < 2) {
+        alert("Se necesitan al menos 2 jugadores para iniciar la partida.");
+        return;
+      }
+      partidaIniciada = true;
+      btnStart.disabled = true;
+      btnStart.innerText = "Partida en curso";
+
+      // Impostor aleatorio entre los jugadores (1 a total)
+      const impostorId = Math.floor(Math.random() * total) + 1;
+
+      // Iniciar MakeCode local del Host
+      setTimeout(() => {
+        enviarAlJuego({
+          canal: "amogus_in",
+          accion: "setup_partida",
+          valor: `1,${total},${impostorId}`
+        });
+      }, 500);
+
+      // Notificar a todos los invitados
+      Object.keys(clientes).forEach(pid => {
+        const client = clientes[pid];
+        client.conn.send({
+          canal: "amogus_in",
+          accion: "setup_partida",
+          valor: `${client.id},${total},${impostorId}`
+        });
+      });
+
+      statusText.innerText = `¡Partida iniciada con ${total} jugadores! Impostor asignado secretamente.`;
+    }
+
+    // --- MODO INVITADO ---
     function unirseASala() {
       const codigo = document.getElementById("inputSala").value.trim();
       if (!codigo) {
@@ -91,12 +218,31 @@
         return;
       }
       statusText.innerText = "Conectando con la sala...";
+      esHost = false;
       peer = new Peer();
 
       peer.on("open", () => {
-        const c = peer.connect(codigo);
-        c.on("open", () => {
-          setupDataHandlers(c, false);
+        hostConn = peer.connect(codigo);
+
+        hostConn.on("open", () => {
+          statusText.innerText = "¡Conectado! Esperando a que el Host inicie la partida...";
+        });
+
+        hostConn.on("data", (data) => {
+          if (data.accion === "bienvenida") {
+            miId = data.valor;
+            const color = miId === 2 ? "Azul" : miId === 3 ? "Verde" : "Amarillo";
+            playerList.innerHTML = `<span style="color:#81d4fa;"><strong>Conectado como: Jugador ${miId} (${color})</strong></span>`;
+          } else if (data.accion === "setup_partida") {
+            statusText.innerText = "¡Partida comenzada!";
+            enviarAlJuego(data);
+          } else {
+            enviarAlJuego(data);
+          }
+        });
+
+        hostConn.on("close", () => {
+          statusText.innerText = "El Host se ha desconectado o la sala se cerró.";
         });
       });
     }
