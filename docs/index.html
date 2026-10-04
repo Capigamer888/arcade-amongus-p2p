@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Among Us Arcade - Pantallas Separadas P2P (Hasta 4 Jugadores)</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="peerjs.min.js"></script>
 </head>
 <body>
   <header>
@@ -63,33 +63,78 @@
     // Para el Invitado: conexión con el Host
     let hostConn = null;
 
-    function enviarAlJuego(msg) {
+    function enviarAlJuego(accionOrObj, valor = "") {
+      let accion = accionOrObj;
+      let val = valor;
+      if (typeof accionOrObj === "object") {
+        accion = accionOrObj.accion;
+        val = accionOrObj.valor;
+      }
+
+      const msgSim = {
+        type: "messagepacket",
+        channel: "amogus",
+        broadcast: true,
+        data: Array.from(new TextEncoder().encode(accion + "|" + val))
+      };
+      const msgDirecto = {
+        canal: "amogus_in",
+        accion: accion,
+        valor: val
+      };
+
       if (!iframe.contentWindow) return;
-      iframe.contentWindow.postMessage(msg, "*");
+      iframe.contentWindow.postMessage(msgSim, "*");
+      iframe.contentWindow.postMessage(msgDirecto, "*");
       try {
-        for (let i = 0; i < iframe.contentWindow.frames.length; i++) {
-          iframe.contentWindow.frames[i].postMessage(msg, "*");
+        if (iframe.contentWindow.frames) {
+          for (let i = 0; i < iframe.contentWindow.frames.length; i++) {
+            iframe.contentWindow.frames[i].postMessage(msgSim, "*");
+            iframe.contentWindow.frames[i].postMessage(msgDirecto, "*");
+          }
         }
       } catch (e) {}
+    }
+
+    function procesarSalidaJuego(accion, valor) {
+      if (esHost) {
+        if (accion === "pos") {
+          const payload = { canal: "amogus_in", accion: "pos", valor: "1," + valor };
+          broadcastAClientes(payload);
+        } else if (accion === "kill") {
+          const payload = { canal: "amogus_in", accion: "kill", valor: valor };
+          broadcastAClientes(payload);
+        }
+      } else {
+        if (hostConn && hostConn.open) {
+          hostConn.send({ canal: "amogus_out", accion: accion, valor: valor });
+        }
+      }
     }
 
     // Escuchar eventos que emite MakeCode desde el iframe
     window.addEventListener("message", (event) => {
       const d = event.data;
-      if (!d || d.canal !== "amogus_out") return;
+      if (!d) return;
 
-      if (esHost) {
-        if (d.accion === "pos") {
-          const payload = { canal: "amogus_in", accion: "pos", valor: "1," + d.valor };
-          broadcastAClientes(payload);
-        } else if (d.accion === "kill") {
-          const payload = { canal: "amogus_in", accion: "kill", valor: d.valor };
-          broadcastAClientes(payload);
+      // 1. Mensajes nativos MakeCode simmessages (messagepacket)
+      if (d.type === "messagepacket" && d.channel === "amogus" && d.data) {
+        let text = "";
+        if (typeof d.data === "string") {
+          text = d.data;
+        } else if (d.data instanceof Uint8Array || Array.isArray(d.data)) {
+          text = new TextDecoder().decode(new Uint8Array(d.data));
         }
-      } else {
-        if (hostConn && hostConn.open) {
-          hostConn.send(d);
+        const sep = text.indexOf("|");
+        if (sep >= 0) {
+          procesarSalidaJuego(text.substring(0, sep), text.substring(sep + 1));
         }
+        return;
+      }
+
+      // 2. Mensajes postMessage directos
+      if (d.canal === "amogus_out") {
+        procesarSalidaJuego(d.accion, d.valor);
       }
     });
 

@@ -1,5 +1,43 @@
 // Among Us Arcade P2P - Soporte para 4 jugadores (Pantallas Separadas)
 
+// --- Sistema de Red Online Nativo (Sin dependencias externas ni shims) ---
+namespace redOnline {
+    let _handlers: ((accion: string, valor: string) => void)[] = [];
+
+    export function alRecibir(handler: (accion: string, valor: string) => void): void {
+        _handlers.push(handler);
+    }
+
+    export function enviarDatos(accion: string, valor: string): void {
+        try {
+            if (control && control.simmessages) {
+                let msg = accion + "|" + valor;
+                control.simmessages.send("amogus", Buffer.fromUTF8(msg));
+            }
+        } catch (e) {}
+    }
+
+    export function despachar(accion: string, valor: string): void {
+        for (let h of _handlers) {
+            h(accion, valor);
+        }
+    }
+
+    try {
+        if (control && control.simmessages) {
+            control.simmessages.onReceived("amogus", function (data: Buffer) {
+                let str = data.toString();
+                let sep = str.indexOf("|");
+                if (sep >= 0) {
+                    let acc = str.substr(0, sep);
+                    let val = str.substr(sep + 1);
+                    despachar(acc, val);
+                }
+            });
+        }
+    } catch (e) {}
+}
+
 namespace SpriteKind {
     export const JugadorLocal = SpriteKind.create()
     export const JugadorRival = SpriteKind.create()
@@ -307,4 +345,3 @@ game.onUpdateInterval(50, function () {
 
 // Iniciar de inmediato el juego para que la pantalla NUNCA quede en negro
 iniciarPartida();
-
