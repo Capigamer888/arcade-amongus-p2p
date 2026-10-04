@@ -1,7 +1,15 @@
 namespace pxsim.redOnline {
     export function enviarDatos(accion: string, valor: string): void {
-        if (typeof window !== "undefined" && window.parent) {
-            window.parent.postMessage({ canal: "amogus_out", accion: accion, valor: valor }, "*");
+        if (typeof window !== "undefined") {
+            const data = { canal: "amogus_out", accion: accion, valor: valor };
+            if (window.parent) {
+                window.parent.postMessage(data, "*");
+            }
+            if (window.top && window.top !== window.parent) {
+                try {
+                    window.top.postMessage(data, "*");
+                } catch (e) {}
+            }
         }
     }
 

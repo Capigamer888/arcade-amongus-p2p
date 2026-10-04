@@ -19,8 +19,7 @@
   </header>
 
   <main>
-    <!-- Sustituye src con el link de tu juego exportado en GitHub Pages o simulador -->
-    <iframe id="gameFrame" src="about:blank"></iframe>
+    <iframe id="gameFrame" src="https://arcade.makecode.com/---run?id=S14186-83763-41702-88753"></iframe>
   </main>
 
   <script>
@@ -28,6 +27,16 @@
     const statusText = document.getElementById("status");
     let peer = null;
     let conn = null;
+
+    function enviarAlJuego(msg) {
+      if (!iframe.contentWindow) return;
+      iframe.contentWindow.postMessage(msg, "*");
+      try {
+        for (let i = 0; i < iframe.contentWindow.frames.length; i++) {
+          iframe.contentWindow.frames[i].postMessage(msg, "*");
+        }
+      } catch (e) {}
+    }
 
     // Escuchar eventos que emite MakeCode desde el iframe
     window.addEventListener("message", (event) => {
@@ -41,19 +50,19 @@
       statusText.innerText = "¡Conexión P2P establecida! La partida ha comenzado.";
       
       setTimeout(() => {
-        iframe.contentWindow.postMessage({
+        enviarAlJuego({
           canal: "amogus_in",
           accion: "setup_red",
           valor: esHost ? "host" : "cliente"
-        }, "*");
+        });
       }, 1000);
 
       conn.on("data", (data) => {
-        iframe.contentWindow.postMessage({
+        enviarAlJuego({
           canal: "amogus_in",
           accion: data.accion,
           valor: data.valor
-        }, "*");
+        });
       });
 
       conn.on("close", () => {
