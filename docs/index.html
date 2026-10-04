@@ -191,7 +191,7 @@
           }, 12000);
         </script>
 
-        <iframe id="gameFrame" onload="onIframeLoaded()" src="https://arcade.makecode.com/---run?id=S94575-20314-67373-38336"></iframe>
+        <iframe id="gameFrame" onload="onIframeLoaded()" src="https://arcade.makecode.com/---run?id=S39363-12928-74168-99421"></iframe>
       </div>
 
       <!-- BARRA DOCK INFERIOR (Krunker Style) -->
@@ -223,7 +223,7 @@
       <!-- Selector de URL de juego (Opcional) -->
       <span class="url-bar-toggle" onclick="toggleUrlBar()">Configuración avanzada de URL Arcade</span>
       <div class="url-bar" id="urlBar">
-        <input type="text" id="inputGameUrl" class="k-input" value="https://arcade.makecode.com/---run?id=S94575-20314-67373-38336" style="font-size:12px;">
+        <input type="text" id="inputGameUrl" class="k-input" value="https://arcade.makecode.com/---run?id=S39363-12928-74168-99421" style="font-size:12px;">
         <button class="k-btn" style="padding:6px 12px; font-size:12px; border-color:#64748b;" onclick="cambiarJuego()">Cargar</button>
       </div>
 
@@ -351,7 +351,7 @@
         type: "messagepacket",
         channel: "amogus",
         broadcast: true,
-        data: new Uint8Array(encoded)
+        data: new Uint8Array(encoded).buffer
       };
       const msgDirecto = {
         canal: "amogus_in",
