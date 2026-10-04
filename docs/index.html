@@ -205,9 +205,7 @@
         <button id="btnCopy" class="k-btn btn-copy" style="display:none;" onclick="copiarCodigo()">
           📋 Copy Code
         </button>
-        <button id="btnStart" class="k-btn btn-start" style="display:none;" onclick="iniciarPartidaHost(); iniciarEnfoqueJuego();">
-          ▶ INICIAR PARTIDA (1/4)
-        </button>
+        
       </div>
 
       <!-- Barra para unirse a sala -->
@@ -291,7 +289,7 @@
   <script>
     const iframe = document.getElementById("gameFrame");
     const statusText = document.getElementById("statusText");
-    const btnStart = document.getElementById("btnStart");
+    
     const btnCopy = document.getElementById("btnCopy");
     const displayRoomCode = document.getElementById("displayRoomCode");
     const cardRoomCode = document.getElementById("cardRoomCode");
@@ -438,7 +436,7 @@
       }
       if (esHost) {
         if (accion === "pos") {
-          const payload = { canal: "amogus_in", accion: "pos", valor: "1," + valor };
+          const payload = { canal: "amogus_in", accion: "pos", valor: valor };
           broadcastAClientes(payload);
         } else if (accion === "kill") {
           const payload = { canal: "amogus_in", accion: "kill", valor: valor };
@@ -464,7 +462,7 @@
 
     function actualizarUISquad() {
       const total = 1 + Object.keys(clientes).length;
-      btnStart.innerText = `▶ INICIAR PARTIDA (${total}/4)`;
+      
       squadCount.innerText = `${total}/4`;
       badgePlayers.innerText = `👥 ${total}/4 Jugadores`;
 
@@ -530,7 +528,7 @@
         displayRoomCode.innerText = id;
         cardRoomCode.style.display = "block";
         btnCopy.style.display = "inline-flex";
-        btnStart.style.display = "inline-flex";
+        
         statusText.innerText = "Sala lista en Skeld. Comparte el código para que se unan hasta 3 tripulantes.";
         showToast("¡Sala creada exitosamente!");
         actualizarUISquad();
@@ -596,8 +594,8 @@
         return;
       }
       partidaIniciada = true;
-      btnStart.disabled = true;
-      btnStart.innerText = "Partida en Curso";
+      
+      
 
       // Elegir impostor al azar
       const impostorId = Math.floor(Math.random() * total) + 1;
