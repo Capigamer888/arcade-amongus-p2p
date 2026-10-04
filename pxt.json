@@ -1,6 +1,6 @@
 {
   "name": "arcade-amongus-p2p",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Among Us P2P Multiplayer in MakeCode Arcade",
   "dependencies": {
     "device": "*"
