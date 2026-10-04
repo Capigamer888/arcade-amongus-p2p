@@ -3,66 +3,236 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Among Us Arcade - Pantallas Separadas P2P (Hasta 4 Jugadores)</title>
+  <title>Among Us Arcade - Polus Outpost (P2P 4 Jugadores)</title>
   <link rel="stylesheet" href="style.css">
   <script src="peerjs.min.js"></script>
 </head>
 <body>
-  <header>
-    <h1>Among Us Arcade (Pantallas Separadas - 4 Jugadores)</h1>
-    <div class="controls">
-      <button id="btnHost" onclick="crearSala()">1. Crear Sala (Host)</button>
-      <input type="text" id="inputSala" placeholder="Pegar código de sala">
-      <button id="btnJoin" onclick="unirseASala()">2. Unirse (Invitado)</button>
-      <button id="btnCopy" style="display:none; background-color:#1976d2;" onclick="copiarCodigo()">📋 Copiar Código</button>
-      <button id="btnStart" style="display:none; background-color:#2e7d32;" onclick="iniciarPartidaHost()">▶ Iniciar Partida (1/4)</button>
+
+  <!-- BARRA SUPERIOR ESTILO KRUNKER -->
+  <header class="top-nav">
+    <div class="brand-wrap">
+      <h1 class="brand-title">AMONG US ARCADE</h1>
+      <span class="brand-badge">P2P v1.0.4</span>
     </div>
-    <p id="status">Estado: Desconectado. Crea una sala o únete a una existente.</p>
-    <div id="playerList"></div>
-    <div style="margin-top: 10px; font-size: 13px; display: flex; justify-content: center; gap: 6px; align-items: center;">
-      <label for="inputGameUrl" style="color:#aaa;">Juego Arcade:</label>
-      <input type="text" id="inputGameUrl" value="https://arcade.makecode.com/---run?id=S25236-49876-31294-93126" style="width: 380px; padding: 4px 8px; font-size: 12px;">
-      <button onclick="cambiarJuego()" style="padding: 4px 12px; font-size: 12px; background-color: #424242;">Recargar</button>
+    <div class="nav-badges">
+      <div class="pill-badge"><span class="dot"></span> WebRTC Direct P2P</div>
+      <div class="pill-badge">🗺️ Polus Outpost</div>
+      <div id="badgePlayers" class="pill-badge" style="color:#6ee7b7; border-color: rgba(52,211,153,0.3);">👥 1/4 Jugadores</div>
     </div>
   </header>
 
-  <main>
-    <iframe id="gameFrame" src="https://arcade.makecode.com/---run?id=S25236-49876-31294-93126"></iframe>
-  </main>
+  <!-- CONTENEDOR PRINCIPAL DE 3 COLUMNAS -->
+  <div class="game-layout">
+
+    <!-- PANEL IZQUIERDO: SELECCIÓN DE TRIPULANTE Y CONTROLES -->
+    <aside class="left-panel">
+      
+      <!-- SELECTOR DE JUGADOR (Soluciona el problema de ambos en rojo) -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <span>Elige Tu Tripulante</span>
+          <span style="font-size:12px; color:var(--text-muted);">1-Click</span>
+        </div>
+        <div class="crew-selector">
+          <button id="crew-1" class="crew-btn active" onclick="seleccionarJugadorManual(1)">
+            <span class="crew-avatar av-1">1</span>
+            <span>Jugador 1 (Rojo - Host)</span>
+          </button>
+          <button id="crew-2" class="crew-btn" onclick="seleccionarJugadorManual(2)">
+            <span class="crew-avatar av-2">2</span>
+            <span>Jugador 2 (Azul)</span>
+          </button>
+          <button id="crew-3" class="crew-btn" onclick="seleccionarJugadorManual(3)">
+            <span class="crew-avatar av-3">3</span>
+            <span>Jugador 3 (Verde)</span>
+          </button>
+          <button id="crew-4" class="crew-btn" onclick="seleccionarJugadorManual(4)">
+            <span class="crew-avatar av-4">4</span>
+            <span>Jugador 4 (Amarillo)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- CONTROLES HUD -->
+      <div class="panel-card">
+        <div class="panel-header">Controles HUD</div>
+        <div class="hud-key-row">
+          <span>Moverte</span>
+          <span class="k-badge">W A S D / Flechas</span>
+        </div>
+        <div class="hud-key-row">
+          <span>Interactuar</span>
+          <span class="k-badge">A / Espacio</span>
+        </div>
+        <div class="hud-key-row">
+          <span>Asesinar</span>
+          <span class="k-badge" style="color:#f43f5e; border-color:#f43f5e;">B (Impostor)</span>
+        </div>
+        <div class="hud-key-row">
+          <span>Pantalla</span>
+          <span class="k-badge">Separada P2P</span>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ÁREA CENTRAL: PANTALLA DE JUEGO Y BARRA DOCK ESTILO KRUNKER -->
+    <main class="center-viewport">
+      
+      <!-- Marco del juego con overlay "Click to Play" -->
+      <div class="game-frame-wrapper" id="frameWrapper">
+        <div class="click-overlay" id="clickOverlay" onclick="iniciarEnfoqueJuego()">
+          <div class="click-play-text">CLICK TO PLAY</div>
+          <p style="color:#cbd5e1; font-weight:600; font-size:14px;">Haz clic para activar los controles del teclado</p>
+        </div>
+        <iframe id="gameFrame" src="https://arcade.makecode.com/---run?id=S25236-49876-31294-93126"></iframe>
+      </div>
+
+      <!-- BARRA DOCK INFERIOR (Krunker Style) -->
+      <div class="krunker-dock">
+        <button id="btnHost" class="k-btn btn-host" onclick="crearSala()">
+          👑 Host Game
+        </button>
+        <button id="btnJoinToggle" class="k-btn btn-join" onclick="toggleJoinBar()">
+          🔗 Join Room
+        </button>
+        <button id="btnCopy" class="k-btn btn-copy" style="display:none;" onclick="copiarCodigo()">
+          📋 Copy Code
+        </button>
+        <button id="btnStart" class="k-btn btn-start" style="display:none;" onclick="iniciarPartidaHost()">
+          ▶ INICIAR PARTIDA (1/4)
+        </button>
+      </div>
+
+      <!-- Barra para unirse a sala -->
+      <div class="join-bar" id="joinBar">
+        <input type="text" id="inputSala" class="k-input" placeholder="Pega el código de sala aquí...">
+        <button class="k-btn btn-join" onclick="unirseASala()">Unirse</button>
+      </div>
+
+      <!-- Banner de estado del juego -->
+      <div class="status-pill" id="statusBanner">
+        <span>⚡</span>
+        <span id="statusText">Modo Offline / Práctica. Crea una sala como Host o únete con un código.</span>
+      </div>
+
+      <!-- Selector de URL de juego (Opcional) -->
+      <span class="url-bar-toggle" onclick="toggleUrlBar()">Configuración avanzada de URL Arcade</span>
+      <div class="url-bar" id="urlBar">
+        <input type="text" id="inputGameUrl" class="k-input" value="https://arcade.makecode.com/---run?id=S25236-49876-31294-93126" style="font-size:12px;">
+        <button class="k-btn" style="padding:6px 12px; font-size:12px; border-color:#64748b;" onclick="cambiarJuego()">Cargar</button>
+      </div>
+
+    </main>
+
+    <!-- PANEL DERECHO: SALA, JUGADORES Y MAPA -->
+    <aside class="right-panel">
+      
+      <!-- CÓDIGO DE SALA ACTIVA -->
+      <div class="panel-card" id="cardRoomCode" style="display:none;">
+        <div class="panel-header">Código de Sala</div>
+        <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:6px; border:1px dashed var(--accent-gold); text-align:center;">
+          <span id="displayRoomCode" style="font-family:monospace; font-size:16px; font-weight:bold; color:var(--accent-gold); word-break:break-all;"></span>
+        </div>
+        <button class="k-btn btn-copy" style="width:100%; margin-top:8px; justify-content:center; font-size:13px; padding:6px 10px;" onclick="copiarCodigo()">
+          📋 Copiar Código
+        </button>
+      </div>
+
+      <!-- LISTA DE ESCUADRÓN EN SALA -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <span>Escuadrón en Sala</span>
+          <span id="squadCount" style="font-size:13px; color:var(--accent-emerald);">1/4</span>
+        </div>
+        <div id="squadList">
+          <div class="squad-member sq-1">
+            <span>🔴 Jugador 1 (Rojo)</span>
+            <span class="squad-tag" style="color:#ef4444;">Host (Tú)</span>
+          </div>
+          <div class="squad-member sq-2" style="opacity:0.4;">
+            <span>🔵 Jugador 2 (Azul)</span>
+            <span class="squad-tag">Esperando...</span>
+          </div>
+          <div class="squad-member sq-3" style="opacity:0.4;">
+            <span>🟢 Jugador 3 (Verde)</span>
+            <span class="squad-tag">Esperando...</span>
+          </div>
+          <div class="squad-member sq-4" style="opacity:0.4;">
+            <span>🟡 Jugador 4 (Amarillo)</span>
+            <span class="squad-tag">Esperando...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- DETALLES DE MAPA -->
+      <div class="panel-card">
+        <div class="panel-header">Base Polus</div>
+        <p style="font-size:13px; color:var(--text-muted); line-height:1.5;">
+          • <strong>Zona:</strong> Outpost Planetario Helado (32x24)<br>
+          • <strong>Spawn:</strong> Nave Dropship Superior<br>
+          • <strong>Salas:</strong> Oficina Central, Electricidad, O2 y Almacén con colisiones y ventilaciones.
+        </p>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <!-- TOAST NOTIFICATION FLOTANTE -->
+  <div id="toast" class="toast">Mensaje</div>
 
   <script>
     const iframe = document.getElementById("gameFrame");
-    const statusText = document.getElementById("status");
+    const statusText = document.getElementById("statusText");
     const btnStart = document.getElementById("btnStart");
     const btnCopy = document.getElementById("btnCopy");
-    const playerList = document.getElementById("playerList");
-
-    function cambiarJuego() {
-      let val = document.getElementById("inputGameUrl").value.trim();
-      if (!val) return;
-      if (val.includes("arcade.makecode.com/") && !val.includes("---run")) {
-        const idMatch = val.match(/([S0-9A-Za-z_-]{10,})/);
-        if (idMatch) {
-          val = "https://arcade.makecode.com/---run?id=" + idMatch[1];
-          document.getElementById("inputGameUrl").value = val;
-        }
-      }
-      iframe.src = val;
-    }
+    const displayRoomCode = document.getElementById("displayRoomCode");
+    const cardRoomCode = document.getElementById("cardRoomCode");
+    const squadCount = document.getElementById("squadCount");
+    const badgePlayers = document.getElementById("badgePlayers");
+    const squadList = document.getElementById("squadList");
+    const clickOverlay = document.getElementById("clickOverlay");
 
     let peer = null;
     let esHost = false;
-    let miId = null;
+    let miId = 1; // 1 = Rojo por defecto
     let partidaIniciada = false;
     let salaId = "";
-
-    // Para el Host: clientes conectados { peerId: { id: 2/3/4, conn: c } }
-    let clientes = {};
-    let proximoId = 2; // 1 es el Host
-
-    // Para el Invitado: conexión con el Host
+    let clientes = {}; // { peerId: { id: 2/3/4, conn: c } }
+    let proximoId = 2;
     let hostConn = null;
 
+    // Toast flotante
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.innerText = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2800);
+    }
+
+    function toggleJoinBar() {
+      const b = document.getElementById("joinBar");
+      b.style.display = b.style.display === "none" ? "flex" : "none";
+      if (b.style.display === "flex") {
+        document.getElementById("inputSala").focus();
+      }
+    }
+
+    function toggleUrlBar() {
+      const b = document.getElementById("urlBar");
+      b.style.display = b.style.display === "none" ? "flex" : "none";
+    }
+
+    function iniciarEnfoqueJuego() {
+      clickOverlay.classList.add("hidden");
+      if (iframe && iframe.contentWindow) {
+        iframe.contentWindow.focus();
+      }
+    }
+
+    // --- RECURSIVE CROSS-ORIGIN POSTMESSAGE TO SIMULATOR ---
     function enviarAlJuego(accionOrObj, valor = "") {
       let accion = accionOrObj;
       let val = valor;
@@ -71,11 +241,18 @@
         val = accionOrObj.valor;
       }
 
-      const msgSim = {
+      const encoded = new TextEncoder().encode(accion + "|" + val);
+      const msgSimUint = {
         type: "messagepacket",
         channel: "amogus",
         broadcast: true,
-        data: Array.from(new TextEncoder().encode(accion + "|" + val))
+        data: new Uint8Array(encoded)
+      };
+      const msgSimArr = {
+        type: "messagepacket",
+        channel: "amogus",
+        broadcast: true,
+        data: Array.from(encoded)
       };
       const msgDirecto = {
         canal: "amogus_in",
@@ -83,18 +260,70 @@
         valor: val
       };
 
-      if (!iframe.contentWindow) return;
-      iframe.contentWindow.postMessage(msgSim, "*");
-      iframe.contentWindow.postMessage(msgDirecto, "*");
-      try {
-        if (iframe.contentWindow.frames) {
-          for (let i = 0; i < iframe.contentWindow.frames.length; i++) {
-            iframe.contentWindow.frames[i].postMessage(msgSim, "*");
-            iframe.contentWindow.frames[i].postMessage(msgDirecto, "*");
+      function postToTree(win) {
+        if (!win) return;
+        try {
+          win.postMessage(msgSimUint, "*");
+          win.postMessage(msgSimArr, "*");
+          win.postMessage(msgDirecto, "*");
+        } catch (e) {}
+        try {
+          for (let i = 0; i < win.length; i++) {
+            postToTree(win[i]);
           }
-        }
-      } catch (e) {}
+        } catch (e) {}
+      }
+
+      postToTree(iframe.contentWindow);
     }
+
+    // --- SELECCIÓN MANUAL DE JUGADOR (Solución Punto 1) ---
+    function seleccionarJugadorManual(id) {
+      miId = id;
+      actualizarUISeleccion(id);
+      enviarAlJuego("set_player", String(id));
+      enviarAlJuego("setup_partida", `${id},4,1`);
+      
+      const colores = ["", "Rojo", "Azul", "Verde", "Amarillo"];
+      showToast(`¡Cambiado a Jugador ${id} (${colores[id]})!`);
+      statusText.innerText = `Controlando: Jugador ${id} (${colores[id]}) en Base Polus.`;
+    }
+
+    function actualizarUISeleccion(id) {
+      for (let i = 1; i <= 4; i++) {
+        const btn = document.getElementById(`crew-${i}`);
+        if (btn) {
+          if (i === id) btn.classList.add("active");
+          else btn.classList.remove("active");
+        }
+      }
+    }
+
+    // Escuchar mensajes emitidos desde MakeCode hacia la web
+    window.addEventListener("message", (event) => {
+      const d = event.data;
+      if (!d) return;
+
+      // 1. simmessages (messagepacket)
+      if (d.type === "messagepacket" && d.channel === "amogus" && d.data) {
+        let text = "";
+        if (typeof d.data === "string") {
+          text = d.data;
+        } else if (d.data instanceof Uint8Array || Array.isArray(d.data)) {
+          text = new TextDecoder().decode(new Uint8Array(d.data));
+        }
+        const sep = text.indexOf("|");
+        if (sep >= 0) {
+          procesarSalidaJuego(text.substring(0, sep), text.substring(sep + 1));
+        }
+        return;
+      }
+
+      // 2. postMessage directo
+      if (d.canal === "amogus_out") {
+        procesarSalidaJuego(d.accion, d.valor);
+      }
+    });
 
     function procesarSalidaJuego(accion, valor) {
       if (esHost) {
@@ -112,32 +341,6 @@
       }
     }
 
-    // Escuchar eventos que emite MakeCode desde el iframe
-    window.addEventListener("message", (event) => {
-      const d = event.data;
-      if (!d) return;
-
-      // 1. Mensajes nativos MakeCode simmessages (messagepacket)
-      if (d.type === "messagepacket" && d.channel === "amogus" && d.data) {
-        let text = "";
-        if (typeof d.data === "string") {
-          text = d.data;
-        } else if (d.data instanceof Uint8Array || Array.isArray(d.data)) {
-          text = new TextDecoder().decode(new Uint8Array(d.data));
-        }
-        const sep = text.indexOf("|");
-        if (sep >= 0) {
-          procesarSalidaJuego(text.substring(0, sep), text.substring(sep + 1));
-        }
-        return;
-      }
-
-      // 2. Mensajes postMessage directos
-      if (d.canal === "amogus_out") {
-        procesarSalidaJuego(d.accion, d.valor);
-      }
-    });
-
     function broadcastAClientes(msg, ignorarPeerId = null) {
       Object.keys(clientes).forEach(pid => {
         if (pid !== ignorarPeerId) {
@@ -149,24 +352,54 @@
       });
     }
 
-    function actualizarUIJugadores() {
+    function actualizarUISquad() {
       const total = 1 + Object.keys(clientes).length;
-      btnStart.innerText = `▶ Iniciar Partida (${total}/4)`;
-      let html = `<div style="margin-top:6px; color:#a5d6a7;"><strong>Jugadores en sala (${total}/4):</strong><br>`;
-      html += `• Jugador 1 (Rojo - Host) [Tú]<br>`;
-      Object.keys(clientes).forEach(pid => {
-        const id = clientes[pid].id;
-        const color = id === 2 ? "Azul" : id === 3 ? "Verde" : "Amarillo";
-        html += `• Jugador ${id} (${color}) [Conectado]<br>`;
-      });
-      html += `</div>`;
-      playerList.innerHTML = html;
+      btnStart.innerText = `▶ INICIAR PARTIDA (${total}/4)`;
+      squadCount.innerText = `${total}/4`;
+      badgePlayers.innerText = `👥 ${total}/4 Jugadores`;
+
+      let html = `
+        <div class="squad-member sq-1">
+          <span>🔴 Jugador 1 (Rojo)</span>
+          <span class="squad-tag" style="color:#ef4444;">${esHost ? "Host (Tú)" : "Host"}</span>
+        </div>
+      `;
+
+      for (let i = 2; i <= 4; i++) {
+        let ocupado = false;
+        let esLocal = (!esHost && miId === i);
+        Object.keys(clientes).forEach(pid => {
+          if (clientes[pid].id === i) ocupado = true;
+        });
+
+        const colores = ["", "Rojo", "Azul", "Verde", "Amarillo"];
+        const colorName = colores[i];
+        const emoji = i === 2 ? "🔵" : i === 3 ? "🟢" : "🟡";
+
+        if (ocupado || esLocal) {
+          html += `
+            <div class="squad-member sq-${i}">
+              <span>${emoji} Jugador ${i} (${colorName})</span>
+              <span class="squad-tag" style="color:#38bdf8;">${esLocal ? "Tú" : "Conectado"}</span>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="squad-member sq-${i}" style="opacity:0.35;">
+              <span>${emoji} Jugador ${i} (${colorName})</span>
+              <span class="squad-tag">Esperando...</span>
+            </div>
+          `;
+        }
+      }
+
+      squadList.innerHTML = html;
     }
 
     function copiarCodigo() {
       if (salaId) {
         navigator.clipboard.writeText(salaId).then(() => {
-          alert("¡Código de sala copiado!");
+          showToast("¡Código de sala copiado!");
         }).catch(() => {
           prompt("Copia el código manualmente:", salaId);
         });
@@ -175,24 +408,29 @@
 
     // --- MODO HOST ---
     function crearSala() {
-      statusText.innerText = "Generando sala P2P...";
+      statusText.innerText = "Creando sala P2P en la red...";
       esHost = true;
       miId = 1;
+      seleccionarJugadorManual(1);
+
       peer = new Peer();
 
       peer.on("open", (id) => {
         salaId = id;
-        statusText.innerText = "Sala lista. Comparte el código con hasta 3 amigos.";
-        btnStart.style.display = "inline-block";
-        btnCopy.style.display = "inline-block";
-        actualizarUIJugadores();
+        displayRoomCode.innerText = id;
+        cardRoomCode.style.display = "block";
+        btnCopy.style.display = "inline-flex";
+        btnStart.style.display = "inline-flex";
+        statusText.innerText = "Sala lista en Polus. Comparte el código para que se unan hasta 3 tripulantes.";
+        showToast("¡Sala creada exitosamente!");
+        actualizarUISquad();
       });
 
       peer.on("connection", (c) => {
         const total = 1 + Object.keys(clientes).length;
         if (total >= 4 || partidaIniciada) {
           c.on("open", () => {
-            c.send({ canal: "amogus_in", accion: "error", valor: "Sala llena o en partida" });
+            c.send({ canal: "amogus_in", accion: "error", valor: "Sala llena o en curso" });
             c.close();
           });
           return;
@@ -201,9 +439,10 @@
         const idAsignado = proximoId++;
         c.on("open", () => {
           clientes[c.peer] = { id: idAsignado, conn: c };
-          actualizarUIJugadores();
+          actualizarUISquad();
+          showToast(`¡Jugador ${idAsignado} se unió a la sala!`);
 
-          // Notificar al invitado de su ID
+          // Enviar bienvenida con el ID asignado al invitado
           c.send({
             canal: "amogus_in",
             accion: "bienvenida",
@@ -232,7 +471,8 @@
 
           c.on("close", () => {
             delete clientes[c.peer];
-            actualizarUIJugadores();
+            actualizarUISquad();
+            showToast(`Un jugador se ha desconectado`);
           });
         });
       });
@@ -241,26 +481,22 @@
     function iniciarPartidaHost() {
       const total = 1 + Object.keys(clientes).length;
       if (total < 2) {
-        alert("Se necesitan al menos 2 jugadores para iniciar la partida.");
+        showToast("Se necesitan al menos 2 jugadores para jugar");
         return;
       }
       partidaIniciada = true;
       btnStart.disabled = true;
-      btnStart.innerText = "Partida en curso";
+      btnStart.innerText = "Partida en Curso";
 
-      // Impostor aleatorio entre los jugadores (1 a total)
+      // Elegir impostor al azar
       const impostorId = Math.floor(Math.random() * total) + 1;
 
       // Iniciar MakeCode local del Host
       setTimeout(() => {
-        enviarAlJuego({
-          canal: "amogus_in",
-          accion: "setup_partida",
-          valor: `1,${total},${impostorId}`
-        });
-      }, 500);
+        enviarAlJuego("setup_partida", `1,${total},${impostorId}`);
+      }, 300);
 
-      // Notificar a todos los invitados
+      // Notificar a todos los clientes
       Object.keys(clientes).forEach(pid => {
         const client = clientes[pid];
         client.conn.send({
@@ -270,17 +506,18 @@
         });
       });
 
-      statusText.innerText = `¡Partida iniciada con ${total} jugadores! Impostor asignado secretamente.`;
+      showToast("¡Partida comenzada en Polus!");
+      statusText.innerText = `¡Partida en marcha! ${total} jugadores en Polus Outpost. Impostor asignado en secreto.`;
     }
 
     // --- MODO INVITADO ---
     function unirseASala() {
       const codigo = document.getElementById("inputSala").value.trim();
       if (!codigo) {
-        alert("Introduce un código de sala válido");
+        showToast("Por favor pega un código de sala válido");
         return;
       }
-      statusText.innerText = "Conectando con la sala...";
+      statusText.innerText = "Conectando con el Host...";
       esHost = false;
       peer = new Peer();
 
@@ -289,15 +526,25 @@
 
         hostConn.on("open", () => {
           statusText.innerText = "¡Conectado! Esperando a que el Host inicie la partida...";
+          showToast("¡Conectado al Host exitosamente!");
         });
 
         hostConn.on("data", (data) => {
           if (data.accion === "bienvenida") {
-            miId = data.valor;
-            const color = miId === 2 ? "Azul" : miId === 3 ? "Verde" : "Amarillo";
-            playerList.innerHTML = `<span style="color:#81d4fa;"><strong>Conectado como: Jugador ${miId} (${color})</strong></span>`;
+            miId = parseInt(data.valor);
+            actualizarUISeleccion(miId);
+            
+            // Asignar inmediatamente el personaje correspondiente en MakeCode
+            enviarAlJuego("set_player", String(miId));
+            enviarAlJuego("setup_partida", `${miId},4,1`);
+
+            const colores = ["", "Rojo", "Azul", "Verde", "Amarillo"];
+            showToast(`¡Asignado como Jugador ${miId} (${colores[miId]})!`);
+            statusText.innerText = `Conectado como Jugador ${miId} (${colores[miId]}). Esperando inicio.`;
+            actualizarUISquad();
           } else if (data.accion === "setup_partida") {
-            statusText.innerText = "¡Partida comenzada!";
+            statusText.innerText = "¡Partida comenzada en Polus!";
+            showToast("¡Partida iniciada!");
             enviarAlJuego(data);
           } else {
             enviarAlJuego(data);
@@ -305,9 +552,24 @@
         });
 
         hostConn.on("close", () => {
-          statusText.innerText = "El Host se ha desconectado o la sala se cerró.";
+          statusText.innerText = "El Host cerró la sala o se desconectó.";
+          showToast("Desconectado de la sala");
         });
       });
+    }
+
+    function cambiarJuego() {
+      let val = document.getElementById("inputGameUrl").value.trim();
+      if (!val) return;
+      if (val.includes("arcade.makecode.com/") && !val.includes("---run")) {
+        const idMatch = val.match(/([S0-9A-Za-z_-]{10,})/);
+        if (idMatch) {
+          val = "https://arcade.makecode.com/---run?id=" + idMatch[1];
+          document.getElementById("inputGameUrl").value = val;
+        }
+      }
+      iframe.src = val;
+      showToast("Juego recargado");
     }
   </script>
 </body>

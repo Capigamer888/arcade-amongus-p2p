@@ -1,6 +1,6 @@
-// Among Us Arcade P2P - Soporte para 4 jugadores (Pantallas Separadas)
+// Among Us Arcade P2P - Mapa Polus & Soporte 4 Jugadores (Pantallas Separadas)
 
-// --- Sistema de Red Online Nativo (redP2P evita conflictos con extensiones antiguas) ---
+// --- Sistema de Red Online Nativo ---
 namespace redP2P {
     let _handlers: ((accion: string, valor: string) => void)[] = [];
 
@@ -43,6 +43,137 @@ namespace SpriteKind {
     export const JugadorRival = SpriteKind.create()
     export const Muerto = SpriteKind.create()
 }
+
+// --- Tiles Pixel Art (16x16) para el Mapa Polus ---
+
+// 1. Suelo Metálico Interior
+const TILE_SUELO_INTERIOR = img`
+c c c c c c c c c c c c c c c c
+c d d d d d d d d d d d d d d c
+c d b b b b b b b b b b b b d c
+c d b c c c c c c c c c c b d c
+c d b c d d d d d d d d c b d c
+c d b c d b b b b b b d c b d c
+c d b c d b c c c c b d c b d c
+c d b c d b c d d c b d c b d c
+c d b c d b c d d c b d c b d c
+c d b c d b c c c c b d c b d c
+c d b c d b b b b b b d c b d c
+c d b c d d d d d d d d c b d c
+c d b c c c c c c c c c c b d c
+c d b b b b b b b b b b b b d c
+c d d d d d d d d d d d d d d c
+c c c c c c c c c c c c c c c c
+`
+
+// 2. Nieve Exterior de Polus
+const TILE_NIEVE = img`
+b b d b b b b d b b b b d b b b
+b b b b b b b b b b b b b b b b
+b d b b b d b b b b d b b b d b
+b b b b b b b b b b b b b b b b
+b b b d b b b b d b b b b b b b
+b b b b b b b b b b b b d b b b
+d b b b b b d b b b b b b b b b
+b b b b b b b b b b b b b b d b
+b b d b b b b d b b b b d b b b
+b b b b b b b b b b b b b b b b
+b d b b b d b b b b d b b b d b
+b b b b b b b b b b b b b b b b
+b b b d b b b b d b b b b b b b
+b b b b b b b b b b b b d b b b
+d b b b b b d b b b b b b b b b
+b b b b b b b b b b b b b b d b
+`
+
+// 3. Muro / Pared de la Base con Colisión
+const TILE_PARED = img`
+f f f f f f f f f f f f f f f f
+f b b b b b b b b b b b b b b f
+f b c c c c c c c c c c c c b f
+f b c 1 1 1 1 1 1 1 1 1 1 c b f
+f b c 1 b b b b b b b b 1 c b f
+f b c 1 b c c c c c c b 1 c b f
+f b c 1 b c 1 1 1 1 c b 1 c b f
+f b c 1 b c 1 b b 1 c b 1 c b f
+f b c 1 b c 1 b b 1 c b 1 c b f
+f b c 1 b c 1 1 1 1 c b 1 c b f
+f b c 1 b c c c c c c b 1 c b f
+f b c 1 b b b b b b b b 1 c b f
+f b c 1 1 1 1 1 1 1 1 1 1 c b f
+f b c c c c c c c c c c c c b f
+f b b b b b b b b b b b b b b f
+f f f f f f f f f f f f f f f f
+`
+
+// 4. Mesa de Reunión de Emergencia (Botón Rojo Central)
+const TILE_MESA = img`
+. . . . f f f f f f f f . . . .
+. . f f e e e e e e e e f f . .
+. f e e e e 2 2 2 2 e e e e f .
+. f e e e 2 2 2 2 2 2 e e e f .
+f e e e 2 2 4 4 4 4 2 2 e e e f
+f e e 2 2 4 4 4 4 4 4 2 2 e e f
+f e e 2 2 4 4 4 4 4 4 2 2 e e f
+f e e e 2 2 4 4 4 4 2 2 e e e f
+. f e e e 2 2 2 2 2 2 e e e f .
+. f e e e e 2 2 2 2 e e e e f .
+. . f f e e e e e e e e f f . .
+. . . . f f f f f f f f . . . .
+. . . . . . d d d d . . . . . .
+. . . . . . d d d d . . . . . .
+. . . . . . d d d d . . . . . .
+. . . . . . d d d d . . . . . .
+`
+
+// 5. Rejilla de Ventilación de Polus
+const TILE_VENT = img`
+f f f f f f f f f f f f f f f f
+f d d d d d d d d d d d d d d f
+f d f f f f f f f f f f f f d f
+f d f b b b b b b b b b b f d f
+f d f f f f f f f f f f f f d f
+f d f b b b b b b b b b b f d f
+f d f f f f f f f f f f f f d f
+f d f b b b b b b b b b b f d f
+f d f f f f f f f f f f f f d f
+f d f b b b b b b b b b b f d f
+f d f f f f f f f f f f f f d f
+f d f b b b b b b b b b b f d f
+f d f f f f f f f f f f f f d f
+f d d d d d d d d d d d d d d f
+f f f f f f f f f f f f f f f f
+. . . . . . . . . . . . . . . .
+`
+
+// --- Mapa Completo de Polus (32 ancho x 24 alto) ---
+// 1: Suelo Metálico | 2: Nieve Exterior | 3: Muro/Pared Sólida | 4: Mesa Emergencia | 5: Ventilación
+const MAPA_POLUS = img`
+3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3
+3 2 2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 3 2 2 2 2 2 2 2 2 2 2 3
+3 2 2 2 2 2 2 2 2 2 2 3 1 1 1 1 1 1 1 1 3 2 2 2 2 2 2 2 2 2 2 3
+3 2 2 2 2 2 2 2 2 2 2 3 1 1 1 1 1 1 1 1 3 2 2 2 2 2 2 2 2 2 2 3
+3 2 2 2 2 2 2 2 2 2 2 3 1 1 1 1 1 1 1 1 3 2 2 2 2 2 2 2 2 2 2 3
+3 2 2 2 2 2 2 2 2 2 2 3 3 3 3 1 1 3 3 3 3 2 2 2 2 2 2 2 2 2 2 3
+3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 3
+3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 3
+3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 3
+3 2 2 2 2 2 2 2 2 2 3 3 3 3 3 1 1 3 3 3 3 3 2 2 2 2 2 2 2 2 2 3
+3 2 3 3 3 3 3 3 3 2 3 1 1 1 1 1 1 1 1 1 1 3 2 3 3 3 3 3 3 3 2 3
+3 2 3 5 1 1 1 1 3 2 3 1 1 1 1 1 1 1 1 1 1 3 2 3 1 1 1 1 5 3 2 3
+3 2 3 1 1 1 1 1 1 1 1 1 1 1 1 4 4 1 1 1 1 1 1 1 1 1 1 1 1 3 2 3
+3 2 3 1 1 1 1 1 1 1 1 1 1 1 1 4 4 1 1 1 1 1 1 1 1 1 1 1 1 3 2 3
+3 2 3 1 1 1 1 1 3 2 3 1 1 1 1 1 1 1 1 1 1 3 2 3 1 1 1 1 1 3 2 3
+3 2 3 1 1 1 1 1 3 2 3 1 1 1 1 1 1 1 1 1 1 3 2 3 1 1 1 1 1 3 2 3
+3 2 3 3 3 3 3 3 3 2 3 3 3 3 3 1 1 3 3 3 3 3 2 3 3 3 3 3 3 3 2 3
+3 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 3
+3 2 2 2 2 2 2 2 2 2 2 3 3 3 3 1 1 3 3 3 3 2 2 2 2 2 2 2 2 2 2 3
+3 2 2 2 2 2 2 2 2 2 2 3 1 1 1 1 1 1 1 1 3 2 2 2 2 2 2 2 2 2 2 3
+3 2 2 2 2 2 2 2 2 2 2 3 1 1 1 1 1 1 1 1 3 2 2 2 2 2 2 2 2 2 2 3
+3 2 2 2 2 2 2 2 2 2 2 3 1 1 1 1 1 1 5 1 3 2 2 2 2 2 2 2 2 2 2 3
+3 2 2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 3 2 2 2 2 2 2 2 2 2 2 3
+3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3
+`
 
 // --- Sprites de Jugadores (Pixel Art 16x16) ---
 const SPRITE_ROJO = img`
@@ -173,18 +304,16 @@ function obtenerColorNombre(idNum: number): string {
     return "Amarillo";
 }
 
+// Spawns ubicados dentro de la Nave (Dropship de Polus)
 function spawnX(idNum: number): number {
-    if (idNum == 1) return 60;
-    if (idNum == 2) return 120;
-    if (idNum == 3) return 60;
-    return 120;
+    if (idNum == 1) return 216; // Col 13
+    if (idNum == 2) return 232; // Col 14
+    if (idNum == 3) return 280; // Col 17
+    return 296;                 // Col 18
 }
 
 function spawnY(idNum: number): number {
-    if (idNum == 1) return 60;
-    if (idNum == 2) return 60;
-    if (idNum == 3) return 120;
-    return 120;
+    return 56; // Fila 3 en la Nave
 }
 
 // --- Variables de Estado ---
@@ -205,9 +334,27 @@ let Rival2: Sprite = null;
 let Rival3: Sprite = null;
 let Rival4: Sprite = null;
 
+function cargarMapaPolus() {
+    scene.setTile(1, TILE_SUELO_INTERIOR, false);
+    scene.setTile(2, TILE_NIEVE, false);
+    scene.setTile(3, TILE_PARED, true);
+    scene.setTile(4, TILE_MESA, true);
+    scene.setTile(5, TILE_VENT, false);
+    scene.setTileMap(MAPA_POLUS, TileScale.Sixteen);
+}
+
+function cambiarJugadorLocal(nuevoId: number) {
+    if (nuevoId < 1 || nuevoId > 4) return;
+    MiId = nuevoId;
+    SoyImpostor = (MiId == IdImpostor);
+    iniciarPartida();
+}
+
 function iniciarPartida() {
     PartidaActiva = true;
-    scene.setBackgroundColor(15);
+
+    // Cargar mapa de Polus con físicas de colisión
+    cargarMapaPolus();
 
     if (JugadorLocal) {
         sprites.destroy(JugadorLocal);
@@ -220,30 +367,26 @@ function iniciarPartida() {
     JugadorLocal = sprites.create(obtenerSkin(MiId), SpriteKind.JugadorLocal);
     JugadorLocal.x = spawnX(MiId);
     JugadorLocal.y = spawnY(MiId);
-    controller.moveSprite(JugadorLocal, 100, 100);
+    controller.moveSprite(JugadorLocal, 90, 90);
     scene.cameraFollowSprite(JugadorLocal);
 
     if (TotalJugadores >= 2) {
         if (MiId != 1) {
             Rival1 = sprites.create(obtenerSkin(1), SpriteKind.JugadorRival);
-            Rival1.x = spawnX(1);
-            Rival1.y = spawnY(1);
+            Rival1.x = spawnX(1); Rival1.y = spawnY(1);
         }
         if (MiId != 2) {
             Rival2 = sprites.create(obtenerSkin(2), SpriteKind.JugadorRival);
-            Rival2.x = spawnX(2);
-            Rival2.y = spawnY(2);
+            Rival2.x = spawnX(2); Rival2.y = spawnY(2);
         }
     }
     if (TotalJugadores >= 3 && MiId != 3) {
         Rival3 = sprites.create(obtenerSkin(3), SpriteKind.JugadorRival);
-        Rival3.x = spawnX(3);
-        Rival3.y = spawnY(3);
+        Rival3.x = spawnX(3); Rival3.y = spawnY(3);
     }
     if (TotalJugadores >= 4 && MiId != 4) {
         Rival4 = sprites.create(obtenerSkin(4), SpriteKind.JugadorRival);
-        Rival4.x = spawnX(4);
-        Rival4.y = spawnY(4);
+        Rival4.x = spawnX(4); Rival4.y = spawnY(4);
     }
 
     anunciarRol();
@@ -253,7 +396,7 @@ function anunciarRol() {
     if (SoyImpostor) {
         game.splash("ERES EL IMPOSTOR", "Presiona B cerca de un rival para eliminarlo");
     } else {
-        game.splash("ERES TRIPULANTE (" + obtenerColorNombre(MiId) + ")", "Sobrevive al impostor");
+        game.splash("ERES TRIPULANTE (" + obtenerColorNombre(MiId) + ")", "Completa tareas y sobrevive");
     }
 }
 
@@ -291,8 +434,14 @@ function aplicarMuerte(idNum: number) {
     }
 }
 
+// Receptor de comandos de Red P2P y UI
 redP2P.alRecibir(function (accion: string, valor: string) {
-    if (accion == "setup_partida") {
+    if (accion == "set_player") {
+        let pId = parseInt(valor);
+        if (pId >= 1 && pId <= 4) {
+            cambiarJugadorLocal(pId);
+        }
+    } else if (accion == "setup_partida") {
         let partes = valor.split(",");
         MiId = parseInt(partes[0]);
         TotalJugadores = parseInt(partes[1]);
@@ -336,12 +485,12 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 });
 
-// --- Sincronización continua de posición ---
+// --- Sincronización continua de posición (cada 50ms) ---
 game.onUpdateInterval(50, function () {
     if (PartidaActiva && JugadorLocal) {
         redP2P.enviarDatos("pos", JugadorLocal.x + "," + JugadorLocal.y);
     }
 });
 
-// Iniciar de inmediato el juego para que la pantalla NUNCA quede en negro
+// Arranca inmediatamente en el Mapa Polus
 iniciarPartida();
