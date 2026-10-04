@@ -15,6 +15,6 @@
   "testFiles": [],
   "public": true,
   "targetVersions": {
-    "target": "arcade"
+    "target": "4.1.25"
   }
 }
