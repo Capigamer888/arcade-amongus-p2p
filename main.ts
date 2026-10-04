@@ -202,6 +202,7 @@ function cargarHub() {
     } else {
         tiles.placeOnTile(JugadorLocal, tiles.getTileLocation(5, 5));
     }
+    controller.moveSprite(JugadorLocal, 90, 90);
 
     
 }
@@ -225,6 +226,7 @@ function iniciarPartida() {
     } else {
         JugadorLocal.x = 400; JugadorLocal.y = 150;
     }
+    controller.moveSprite(JugadorLocal, 90, 90);
 
     // Asegurarse que todos aparezcan en start (los creamos dinámicamente o aquí)
     if (TotalJugadores >= 2 && MiId != 1) { if(!Rival1) Rival1 = sprites.create(obtenerSkin(1), SpriteKind.P2PRival); Rival1.setPosition(400,150); }
