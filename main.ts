@@ -1,52 +1,27 @@
 // Among Us Arcade P2P - Mapa Skeld & Soporte 4 Jugadores
 
 namespace redP2P {
-    // Declarar control explícitamente por si el entorno local no lo encuentra
-    declare namespace control {
-        function onEvent(src: number, value: number, handler: () => void): void;
-    }
-
-    //% shim=pxt::sendMessage
-    export declare function _sendMsg(channel: string, message: Buffer, parentOnly?: boolean): void;
-
-    //% shim=pxt::peekMessageChannel
-    export declare function _peekMsg(): string;
-
-    //% shim=pxt::readMessageData
-    export declare function _readMsg(): Buffer;
-
     let _handlers: ((accion: string, valor: string) => void)[] = [];
     export function alRecibir(handler: (accion: string, valor: string) => void): void {
         _handlers.push(handler);
     }
     export function enviarDatos(accion: string, valor: string): void {
         try {
-            let msg = accion + "|" + valor;
-            _sendMsg("amogus", Buffer.fromUTF8(msg));
+            (control as any).simmessages.send("amogus", Buffer.fromUTF8(accion + "|" + valor));
         } catch (e) {}
     }
-    export function despachar(accion: string, valor: string): void {
-        for (let h of _handlers) { h(accion, valor); }
-    }
-
-    let queueHandlers: { [channel: string]: (msg: Buffer) => void } = {};
-    function consumeMessages() {
-        while (true) {
-            const channel = _peekMsg();
-            if (!channel) break;
-            const msg = _readMsg();
-            const handler = queueHandlers && queueHandlers[channel];
-            if (handler) handler(msg);
-        }
-    }
-
     export function inicializar() {
-        queueHandlers["amogus"] = function(data: Buffer) {
-            let str = data.toString();
-            let sep = str.indexOf("|");
-            if (sep >= 0) { despachar(str.substr(0, sep), str.substr(sep + 1)); }
-        };
-        control.onEvent(2999, 1, consumeMessages);
+        try {
+            (control as any).simmessages.onReceived("amogus", function(data: Buffer) {
+                let str = data.toString();
+                let sep = str.indexOf("|");
+                if (sep >= 0) {
+                    let acc = str.substring(0, sep);
+                    let val = str.substring(sep + 1);
+                    for(let h of _handlers) { h(acc, val); }
+                }
+            });
+        } catch(e) {}
     }
 }
 redP2P.inicializar();
@@ -222,13 +197,12 @@ function cargarHub() {
     // Intentar buscar una baldosa de piso válida en el Hub para no caer en el vacío negro
     let pisoHub = assets.tile`tile9`;
     if (pisoHub) {
-        tiles.placeOnRandomTile(JugadorLocal, pisoHub);
+        tiles.placeOnTile(JugadorLocal, tiles.getTileLocation(5, 5));
     } else {
-        JugadorLocal.x = 80;
-        JugadorLocal.y = 60;
+        tiles.placeOnTile(JugadorLocal, tiles.getTileLocation(5, 5));
     }
 
-    game.splash("EN LOBBY (ESPERANDO)", "Eres el Jugador " + MiId);
+    
 }
 
 // Llamar al Hub enseguida si abres el juego
