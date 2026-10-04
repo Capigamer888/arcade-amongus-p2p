@@ -38,10 +38,11 @@ namespace redP2P {
     } catch (e) {}
 }
 
+// Prefijos P2P únicos para evitar colisiones con el Asset Pack o variables existentes
 namespace SpriteKind {
-    export const JugadorLocal = SpriteKind.create()
-    export const JugadorRival = SpriteKind.create()
-    export const Muerto = SpriteKind.create()
+    export const P2PLocal = SpriteKind.create()
+    export const P2PRival = SpriteKind.create()
+    export const P2PCadaver = SpriteKind.create()
 }
 
 // --- Tiles Pixel Art (16x16) para el Mapa Polus ---
@@ -364,7 +365,7 @@ function iniciarPartida() {
     if (Rival3) { sprites.destroy(Rival3); Rival3 = null; }
     if (Rival4) { sprites.destroy(Rival4); Rival4 = null; }
 
-    JugadorLocal = sprites.create(obtenerSkin(MiId), SpriteKind.JugadorLocal);
+    JugadorLocal = sprites.create(obtenerSkin(MiId), SpriteKind.P2PLocal);
     JugadorLocal.x = spawnX(MiId);
     JugadorLocal.y = spawnY(MiId);
     controller.moveSprite(JugadorLocal, 90, 90);
@@ -372,20 +373,20 @@ function iniciarPartida() {
 
     if (TotalJugadores >= 2) {
         if (MiId != 1) {
-            Rival1 = sprites.create(obtenerSkin(1), SpriteKind.JugadorRival);
+            Rival1 = sprites.create(obtenerSkin(1), SpriteKind.P2PRival);
             Rival1.x = spawnX(1); Rival1.y = spawnY(1);
         }
         if (MiId != 2) {
-            Rival2 = sprites.create(obtenerSkin(2), SpriteKind.JugadorRival);
+            Rival2 = sprites.create(obtenerSkin(2), SpriteKind.P2PRival);
             Rival2.x = spawnX(2); Rival2.y = spawnY(2);
         }
     }
     if (TotalJugadores >= 3 && MiId != 3) {
-        Rival3 = sprites.create(obtenerSkin(3), SpriteKind.JugadorRival);
+        Rival3 = sprites.create(obtenerSkin(3), SpriteKind.P2PRival);
         Rival3.x = spawnX(3); Rival3.y = spawnY(3);
     }
     if (TotalJugadores >= 4 && MiId != 4) {
-        Rival4 = sprites.create(obtenerSkin(4), SpriteKind.JugadorRival);
+        Rival4 = sprites.create(obtenerSkin(4), SpriteKind.P2PRival);
         Rival4.x = spawnX(4); Rival4.y = spawnY(4);
     }
 
@@ -416,21 +417,21 @@ function aplicarMuerte(idNum: number) {
     if (idNum == MiId) {
         if (JugadorLocal) {
             JugadorLocal.setImage(SPRITE_FANTASMA);
-            JugadorLocal.setKind(SpriteKind.Muerto);
+            JugadorLocal.setKind(SpriteKind.P2PCadaver);
             game.splash("¡HAS SIDO ASESINADO!");
         }
     } else if (idNum == 1 && Rival1) {
         Rival1.setImage(SPRITE_MUERTO);
-        Rival1.setKind(SpriteKind.Muerto);
+        Rival1.setKind(SpriteKind.P2PCadaver);
     } else if (idNum == 2 && Rival2) {
         Rival2.setImage(SPRITE_MUERTO);
-        Rival2.setKind(SpriteKind.Muerto);
+        Rival2.setKind(SpriteKind.P2PCadaver);
     } else if (idNum == 3 && Rival3) {
         Rival3.setImage(SPRITE_MUERTO);
-        Rival3.setKind(SpriteKind.Muerto);
+        Rival3.setKind(SpriteKind.P2PCadaver);
     } else if (idNum == 4 && Rival4) {
         Rival4.setImage(SPRITE_MUERTO);
-        Rival4.setKind(SpriteKind.Muerto);
+        Rival4.setKind(SpriteKind.P2PCadaver);
     }
 }
 

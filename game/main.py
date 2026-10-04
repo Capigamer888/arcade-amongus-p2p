@@ -35,9 +35,9 @@ class RedP2PNative:
 redP2P = RedP2PNative()
 
 class SpriteKind:
-    JugadorLocal = SpriteKind.create()
-    JugadorRival = SpriteKind.create()
-    Muerto = SpriteKind.create()
+    P2PLocal = SpriteKind.create()
+    P2PRival = SpriteKind.create()
+    P2PCadaver = SpriteKind.create()
 
 # --- Tiles Pixel Art (16x16) para el Mapa Polus ---
 TILE_SUELO_INTERIOR = img"""
@@ -341,7 +341,7 @@ def iniciar_partida():
     if Rival3: sprites.destroy(Rival3); Rival3 = None
     if Rival4: sprites.destroy(Rival4); Rival4 = None
 
-    JugadorLocal = sprites.create(obtener_skin(MiId), SpriteKind.JugadorLocal)
+    JugadorLocal = sprites.create(obtener_skin(MiId), SpriteKind.P2PLocal)
     JugadorLocal.x = spawn_x(MiId)
     JugadorLocal.y = spawn_y(MiId)
     controller.move_sprite(JugadorLocal, 90, 90)
@@ -349,16 +349,16 @@ def iniciar_partida():
 
     if TotalJugadores >= 2:
         if MiId != 1:
-            Rival1 = sprites.create(obtener_skin(1), SpriteKind.JugadorRival)
+            Rival1 = sprites.create(obtener_skin(1), SpriteKind.P2PRival)
             Rival1.x = spawn_x(1); Rival1.y = spawn_y(1)
         if MiId != 2:
-            Rival2 = sprites.create(obtener_skin(2), SpriteKind.JugadorRival)
+            Rival2 = sprites.create(obtener_skin(2), SpriteKind.P2PRival)
             Rival2.x = spawn_x(2); Rival2.y = spawn_y(2)
     if TotalJugadores >= 3 and MiId != 3:
-        Rival3 = sprites.create(obtener_skin(3), SpriteKind.JugadorRival)
+        Rival3 = sprites.create(obtener_skin(3), SpriteKind.P2PRival)
         Rival3.x = spawn_x(3); Rival3.y = spawn_y(3)
     if TotalJugadores >= 4 and MiId != 4:
-        Rival4 = sprites.create(obtener_skin(4), SpriteKind.JugadorRival)
+        Rival4 = sprites.create(obtener_skin(4), SpriteKind.P2PRival)
         Rival4.x = spawn_x(4); Rival4.y = spawn_y(4)
 
     anunciar_rol()
@@ -384,20 +384,20 @@ def aplicar_muerte(id_num: int):
 
     if id_num == MiId and JugadorLocal:
         JugadorLocal.set_image(SPRITE_FANTASMA)
-        JugadorLocal.set_kind(SpriteKind.Muerto)
+        JugadorLocal.set_kind(SpriteKind.P2PCadaver)
         game.splash("¡HAS SIDO ASESINADO!")
     elif id_num == 1 and Rival1:
         Rival1.set_image(SPRITE_MUERTO)
-        Rival1.set_kind(SpriteKind.Muerto)
+        Rival1.set_kind(SpriteKind.P2PCadaver)
     elif id_num == 2 and Rival2:
         Rival2.set_image(SPRITE_MUERTO)
-        Rival2.set_kind(SpriteKind.Muerto)
+        Rival2.set_kind(SpriteKind.P2PCadaver)
     elif id_num == 3 and Rival3:
         Rival3.set_image(SPRITE_MUERTO)
-        Rival3.set_kind(SpriteKind.Muerto)
+        Rival3.set_kind(SpriteKind.P2PCadaver)
     elif id_num == 4 and Rival4:
         Rival4.set_image(SPRITE_MUERTO)
-        Rival4.set_kind(SpriteKind.Muerto)
+        Rival4.set_kind(SpriteKind.P2PCadaver)
 
 def procesar_red(accion: str, valor: str):
     global MiId, TotalJugadores, IdImpostor, SoyImpostor
