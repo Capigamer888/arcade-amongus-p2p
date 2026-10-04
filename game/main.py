@@ -121,7 +121,7 @@ SPRITE_FANTASMA = img("""
 . . . . . . . . . . . . . . . .
 """)
 
-def obtener_skin(id_num: int) -> Image:
+def obtener_skin(id_num):
     if id_num == 1:
         return SPRITE_ROJO
     elif id_num == 2:
@@ -131,7 +131,7 @@ def obtener_skin(id_num: int) -> Image:
     else:
         return SPRITE_AMARILLO
 
-def obtener_color_nombre(id_num: int) -> str:
+def obtener_color_nombre(id_num):
     if id_num == 1:
         return "Rojo"
     elif id_num == 2:
@@ -141,6 +141,26 @@ def obtener_color_nombre(id_num: int) -> str:
     else:
         return "Amarillo"
 
+def spawn_x(id_num):
+    if id_num == 1:
+        return 60
+    elif id_num == 2:
+        return 120
+    elif id_num == 3:
+        return 60
+    else:
+        return 120
+
+def spawn_y(id_num):
+    if id_num == 1:
+        return 60
+    elif id_num == 2:
+        return 60
+    elif id_num == 3:
+        return 120
+    else:
+        return 120
+
 # --- Variables de Estado de Red ---
 MiId = 1
 TotalJugadores = 2
@@ -148,60 +168,46 @@ IdImpostor = 1
 SoyImpostor = False
 PartidaActiva = False
 
+Muerto1 = False
+Muerto2 = False
+Muerto3 = False
+Muerto4 = False
+
 JugadorLocal: Sprite = None
 Rival1: Sprite = None
 Rival2: Sprite = None
 Rival3: Sprite = None
 Rival4: Sprite = None
 
-def spawn_x(id_num: int) -> number:
-    if id_num == 1:
-        return 60
-    elif id_num == 2:
-        return 120
-    elif id_num == 3:
-        return 60
-    else:
-        return 120
-
-def spawn_y(id_num: int) -> number:
-    if id_num == 1:
-        return 60
-    elif id_num == 2:
-        return 60
-    elif id_num == 3:
-        return 120
-    else:
-        return 120
-
 def iniciar_partida():
     global PartidaActiva, JugadorLocal, Rival1, Rival2, Rival3, Rival4
     PartidaActiva = True
 
-    # Fondo oscuro espacial de seguridad (evita pantalla en negro)
     scene.set_background_color(15)
 
-    # Crear personaje local
     JugadorLocal = sprites.create(obtener_skin(MiId), SpriteKind.JugadorLocal)
     JugadorLocal.x = spawn_x(MiId)
     JugadorLocal.y = spawn_y(MiId)
     controller.move_sprite(JugadorLocal, 100, 100)
     scene.camera_follow_sprite(JugadorLocal)
 
-    # Crear los avatares de los demás jugadores conectados
-    for i in range(1, TotalJugadores + 1):
-        if i != MiId:
-            rival = sprites.create(obtener_skin(i), SpriteKind.JugadorRival)
-            rival.x = spawn_x(i)
-            rival.y = spawn_y(i)
-            if i == 1:
-                Rival1 = rival
-            elif i == 2:
-                Rival2 = rival
-            elif i == 3:
-                Rival3 = rival
-            elif i == 4:
-                Rival4 = rival
+    if TotalJugadores >= 2:
+        if 1 != MiId:
+            Rival1 = sprites.create(obtener_skin(1), SpriteKind.JugadorRival)
+            Rival1.x = spawn_x(1)
+            Rival1.y = spawn_y(1)
+        if 2 != MiId:
+            Rival2 = sprites.create(obtener_skin(2), SpriteKind.JugadorRival)
+            Rival2.x = spawn_x(2)
+            Rival2.y = spawn_y(2)
+    if TotalJugadores >= 3 and 3 != MiId:
+        Rival3 = sprites.create(obtener_skin(3), SpriteKind.JugadorRival)
+        Rival3.x = spawn_x(3)
+        Rival3.y = spawn_y(3)
+    if TotalJugadores >= 4 and 4 != MiId:
+        Rival4 = sprites.create(obtener_skin(4), SpriteKind.JugadorRival)
+        Rival4.x = spawn_x(4)
+        Rival4.y = spawn_y(4)
 
     anunciar_rol()
 
@@ -211,7 +217,7 @@ def anunciar_rol():
     else:
         game.splash("ERES TRIPULANTE (" + obtener_color_nombre(MiId) + ")", "Sobrevive al impostor")
 
-def actualizar_pos_rival(id_num: int, x_val: number, y_val: number):
+def actualizar_pos_rival(id_num, x_val, y_val):
     if id_num == 1 and Rival1:
         Rival1.x = x_val
         Rival1.y = y_val
@@ -225,7 +231,17 @@ def actualizar_pos_rival(id_num: int, x_val: number, y_val: number):
         Rival4.x = x_val
         Rival4.y = y_val
 
-def aplicar_muerte(id_num: int):
+def aplicar_muerte(id_num):
+    global Muerto1, Muerto2, Muerto3, Muerto4
+    if id_num == 1:
+        Muerto1 = True
+    elif id_num == 2:
+        Muerto2 = True
+    elif id_num == 3:
+        Muerto3 = True
+    elif id_num == 4:
+        Muerto4 = True
+
     if id_num == MiId:
         if JugadorLocal:
             JugadorLocal.set_image(SPRITE_FANTASMA)
@@ -248,7 +264,6 @@ def procesar_red(accion: str, valor: str):
     global MiId, TotalJugadores, IdImpostor, SoyImpostor
 
     if accion == "setup_partida":
-        # Formato: "id,total,impostor"
         partes = valor.split(",")
         MiId = parse_int(partes[0])
         TotalJugadores = parse_int(partes[1])
@@ -257,7 +272,6 @@ def procesar_red(accion: str, valor: str):
         iniciar_partida()
 
     elif accion == "pos":
-        # Formato: "id,x,y"
         partes_pos = valor.split(",")
         if len(partes_pos) >= 3:
             id_remoto = parse_int(partes_pos[0])
@@ -265,7 +279,6 @@ def procesar_red(accion: str, valor: str):
                 actualizar_pos_rival(id_remoto, parse_float(partes_pos[1]), parse_float(partes_pos[2]))
 
     elif accion == "kill":
-        # Formato: "target_id"
         id_muerto = parse_int(valor)
         aplicar_muerte(id_muerto)
 
@@ -274,20 +287,19 @@ redOnline.al_recibir(procesar_red)
 # --- Ataque del Impostor con botón B ---
 def on_b_pressed():
     if SoyImpostor and PartidaActiva and JugadorLocal:
-        # Verificar cercanía con cada rival vivo
-        if Rival1 and JugadorLocal.overlaps_with(Rival1) and Rival1.kind() != SpriteKind.Muerto:
+        if Rival1 and JugadorLocal.overlaps_with(Rival1) and not Muerto1:
             aplicar_muerte(1)
             redOnline.enviar_datos("kill", "1")
             game.splash("Eliminaste a Rojo")
-        elif Rival2 and JugadorLocal.overlaps_with(Rival2) and Rival2.kind() != SpriteKind.Muerto:
+        elif Rival2 and JugadorLocal.overlaps_with(Rival2) and not Muerto2:
             aplicar_muerte(2)
             redOnline.enviar_datos("kill", "2")
             game.splash("Eliminaste a Azul")
-        elif Rival3 and JugadorLocal.overlaps_with(Rival3) and Rival3.kind() != SpriteKind.Muerto:
+        elif Rival3 and JugadorLocal.overlaps_with(Rival3) and not Muerto3:
             aplicar_muerte(3)
             redOnline.enviar_datos("kill", "3")
             game.splash("Eliminaste a Verde")
-        elif Rival4 and JugadorLocal.overlaps_with(Rival4) and Rival4.kind() != SpriteKind.Muerto:
+        elif Rival4 and JugadorLocal.overlaps_with(Rival4) and not Muerto4:
             aplicar_muerte(4)
             redOnline.enviar_datos("kill", "4")
             game.splash("Eliminaste a Amarillo")
