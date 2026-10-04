@@ -1,7 +1,7 @@
 // Among Us Arcade P2P - Soporte para 4 jugadores (Pantallas Separadas)
 
-// --- Sistema de Red Online Nativo (Sin dependencias externas ni shims) ---
-namespace redOnline {
+// --- Sistema de Red Online Nativo (redP2P evita conflictos con extensiones antiguas) ---
+namespace redP2P {
     let _handlers: ((accion: string, valor: string) => void)[] = [];
 
     export function alRecibir(handler: (accion: string, valor: string) => void): void {
@@ -291,7 +291,7 @@ function aplicarMuerte(idNum: number) {
     }
 }
 
-redOnline.alRecibir(function (accion: string, valor: string) {
+redP2P.alRecibir(function (accion: string, valor: string) {
     if (accion == "setup_partida") {
         let partes = valor.split(",");
         MiId = parseInt(partes[0]);
@@ -318,19 +318,19 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     if (SoyImpostor && PartidaActiva && JugadorLocal) {
         if (Rival1 && JugadorLocal.overlapsWith(Rival1) && !Muerto1) {
             aplicarMuerte(1);
-            redOnline.enviarDatos("kill", "1");
+            redP2P.enviarDatos("kill", "1");
             game.splash("Eliminaste a Rojo");
         } else if (Rival2 && JugadorLocal.overlapsWith(Rival2) && !Muerto2) {
             aplicarMuerte(2);
-            redOnline.enviarDatos("kill", "2");
+            redP2P.enviarDatos("kill", "2");
             game.splash("Eliminaste a Azul");
         } else if (Rival3 && JugadorLocal.overlapsWith(Rival3) && !Muerto3) {
             aplicarMuerte(3);
-            redOnline.enviarDatos("kill", "3");
+            redP2P.enviarDatos("kill", "3");
             game.splash("Eliminaste a Verde");
         } else if (Rival4 && JugadorLocal.overlapsWith(Rival4) && !Muerto4) {
             aplicarMuerte(4);
-            redOnline.enviarDatos("kill", "4");
+            redP2P.enviarDatos("kill", "4");
             game.splash("Eliminaste a Amarillo");
         }
     }
@@ -339,7 +339,7 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
 // --- Sincronización continua de posición ---
 game.onUpdateInterval(50, function () {
     if (PartidaActiva && JugadorLocal) {
-        redOnline.enviarDatos("pos", JugadorLocal.x + "," + JugadorLocal.y);
+        redP2P.enviarDatos("pos", JugadorLocal.x + "," + JugadorLocal.y);
     }
 });
 

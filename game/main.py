@@ -297,26 +297,26 @@ def procesar_red(accion: str, valor: str):
         id_muerto = parse_int(valor)
         aplicar_muerte(id_muerto)
 
-redOnline.al_recibir(procesar_red)
+redP2P.al_recibir(procesar_red)
 
 # --- Ataque del Impostor con botón B ---
 def on_b_pressed():
     if SoyImpostor and PartidaActiva and JugadorLocal:
         if Rival1 and JugadorLocal.overlaps_with(Rival1) and not Muerto1:
             aplicar_muerte(1)
-            redOnline.enviar_datos("kill", "1")
+            redP2P.enviar_datos("kill", "1")
             game.splash("Eliminaste a Rojo")
         elif Rival2 and JugadorLocal.overlaps_with(Rival2) and not Muerto2:
             aplicar_muerte(2)
-            redOnline.enviar_datos("kill", "2")
+            redP2P.enviar_datos("kill", "2")
             game.splash("Eliminaste a Azul")
         elif Rival3 and JugadorLocal.overlaps_with(Rival3) and not Muerto3:
             aplicar_muerte(3)
-            redOnline.enviar_datos("kill", "3")
+            redP2P.enviar_datos("kill", "3")
             game.splash("Eliminaste a Verde")
         elif Rival4 and JugadorLocal.overlaps_with(Rival4) and not Muerto4:
             aplicar_muerte(4)
-            redOnline.enviar_datos("kill", "4")
+            redP2P.enviar_datos("kill", "4")
             game.splash("Eliminaste a Amarillo")
 
 controller.B.on_event(ControllerButtonEvent.PRESSED, on_b_pressed)
@@ -324,7 +324,7 @@ controller.B.on_event(ControllerButtonEvent.PRESSED, on_b_pressed)
 # --- Sincronización continua de posición ---
 def sincronizar_posicion():
     if PartidaActiva and JugadorLocal:
-        redOnline.enviar_datos("pos", str(JugadorLocal.x) + "," + str(JugadorLocal.y))
+        redP2P.enviar_datos("pos", str(JugadorLocal.x) + "," + str(JugadorLocal.y))
 
 game.on_update_interval(50, sincronizar_posicion)
 
