@@ -206,6 +206,7 @@ function cargarHub() {
     PartidaActiva = false;
     PartidaTerminada = false;
     tiles.setCurrentTilemap(tilemap`Level_0`);
+    scene.setBackgroundColor(11); // Fondo celeste
 
     if (KillBtnUI) { sprites.destroy(KillBtnUI); KillBtnUI = null; }
     if (TaskBtnUI) { sprites.destroy(TaskBtnUI); TaskBtnUI = null; }
@@ -218,9 +219,14 @@ function cargarHub() {
         JugadorLocal.setImage(obtenerSkin(MiId));
     }
     
-    // Position center hub
-    JugadorLocal.x = 80;
-    JugadorLocal.y = 60;
+    // Intentar buscar una baldosa de piso válida en el Hub para no caer en el vacío negro
+    let pisoHub = assets.tile`tile9`;
+    if (pisoHub) {
+        tiles.placeOnRandomTile(JugadorLocal, pisoHub);
+    } else {
+        JugadorLocal.x = 80;
+        JugadorLocal.y = 60;
+    }
 
     game.splash("EN LOBBY (ESPERANDO)", "Eres el Jugador " + MiId);
 }
@@ -231,7 +237,8 @@ cargarHub();
 function iniciarPartida() {
     PartidaActiva = true;
     PartidaTerminada = false;
-    tiles.setCurrentTilemap(tilemap`Level_1`);
+    tiles.setCurrentTilemap(tilemap`Level_2`);
+    scene.setBackgroundColor(15); // Fondo negro para The Skeld
 
     if (KillBtnUI) { sprites.destroy(KillBtnUI); KillBtnUI = null; }
     if (TaskBtnUI) { sprites.destroy(TaskBtnUI); TaskBtnUI = null; }
