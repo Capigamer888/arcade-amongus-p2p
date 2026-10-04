@@ -1,13 +1,17 @@
 {
-  "name": "arcade-iframe-bridge",
-  "version": "0.0.3",
-  "description": "Extensión puente postMessage para comunicación P2P entre MakeCode Arcade y HTML padre",
+  "name": "arcade-amongus-p2p",
+  "version": "1.0.0",
+  "description": "Among Us P2P Multiplayer in MakeCode Arcade",
   "dependencies": {
-    "device": "*"
+    "device": "*",
+    "status-bar": "github:microsoft/pxt-status-bar"
   },
   "files": [
+    "main.blocks",
+    "main.ts",
     "README.md",
-    "main.ts"
+    "images.g.jres",
+    "tilemap.g.jres"
   ],
   "testFiles": [],
   "public": true,
