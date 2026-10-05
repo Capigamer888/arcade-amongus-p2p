@@ -704,7 +704,9 @@ game.onUpdateInterval(2000, function() {
             JugadorLocal.setFlag(SpriteFlag.GhostThroughWalls, false);
         }
     } else if (MapaActual == "skeld" && !EnVotacion) {
-        if (JugadorLocal.x < 100 && JugadorLocal.y < 100) {
+        // Solo teletransportar si están exactamente atorados en las coordenadas exactas de aparición del lobby
+        // (90, 90) a (130, 90) para evitar arruinar la zona superior izquierda de Skeld (Motores)
+        if (JugadorLocal.y == 90 && JugadorLocal.x >= 90 && JugadorLocal.x <= 130) {
             JugadorLocal.setPosition(400 + (MiId * 10 - 20), 150);
         }
     }
