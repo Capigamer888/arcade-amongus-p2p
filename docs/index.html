@@ -571,9 +571,14 @@
           });
           
           c.on("close", () => {
+            const discId = clientes[c.peer] ? clientes[c.peer].id : null;
             delete clientes[c.peer];
             actualizarUISquad();
             showToast(`Un jugador se ha desconectado`);
+            if (discId) {
+              enviarAlJuego("player_left", String(discId));
+              broadcastAClientes({ canal: "amogus_in", accion: "player_left", valor: String(discId) });
+            }
           });
         });
       });

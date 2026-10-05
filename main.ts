@@ -690,8 +690,9 @@ function revisarVictoriaImpostor() {
         if (i != IdImpostor && !Muertos[i]) vivosNoImpostor++;
     }
     
-    // Impostor gana cuando quedan igual o menos tripulantes vivos que impostores (1)
-    if (TotalJugadores > 1 && vivosNoImpostor <= 1) {
+    // Impostor gana cuando quedan igual o menos tripulantes vivos que impostores
+    let umbralVictoria = (TotalJugadores <= 2) ? 0 : 1;
+    if (TotalJugadores > 1 && vivosNoImpostor <= umbralVictoria) {
         redP2P.enviarDatos("impostor_win", "1");
         terminarPartida(false);
     }
@@ -803,7 +804,7 @@ function procesarResultadoVotacion() {
         controller.moveSprite(JugadorLocal, 90, 90);
     }
     
-    if (empate || expulsado == 0) {
+    if (empate || expulsado <= 0) {
         cooldownEmergencia = game.runtime() + 25000;
         debounceBotonA = game.runtime() + 1000;
         if (JugadorLocal) JugadorLocal.y = 200;
@@ -812,10 +813,17 @@ function procesarResultadoVotacion() {
         game.splash("JUGADOR " + expulsado + " EXPULSADO", expulsado == IdImpostor ? "Era el Impostor" : "No era el Impostor");
         
         if (MiId == expulsado) {
+            JugadorLocal.setImage(SPRITE_FANTASMA);
             JugadorLocal.setKind(SpriteKind.P2PCadaver);
             JugadorLocal.setFlag(SpriteFlag.GhostThroughWalls, true);
             controller.moveSprite(JugadorLocal, 130, 130);
             JugadorLocal.sayText("FANTASMA", 5000);
+            
+            // Ver a los demás fantasmas
+            if (Rival1 && Muertos[1]) Rival1.setFlag(SpriteFlag.Invisible, false);
+            if (Rival2 && Muertos[2]) Rival2.setFlag(SpriteFlag.Invisible, false);
+            if (Rival3 && Muertos[3]) Rival3.setFlag(SpriteFlag.Invisible, false);
+            if (Rival4 && Muertos[4]) Rival4.setFlag(SpriteFlag.Invisible, false);
         } else if (expulsado == 1 && Rival1) { Rival1.setFlag(SpriteFlag.Invisible, true); Rival1.setImage(SPRITE_FANTASMA); }
         else if (expulsado == 2 && Rival2) { Rival2.setFlag(SpriteFlag.Invisible, true); Rival2.setImage(SPRITE_FANTASMA); }
         else if (expulsado == 3 && Rival3) { Rival3.setFlag(SpriteFlag.Invisible, true); Rival3.setImage(SPRITE_FANTASMA); }
@@ -854,12 +862,27 @@ redP2P.alRecibir(function (accion: string, valor: string) {
             if (!PartidaActiva) cargarHub();
         }
     } else if (accion == "setup_partida") {
+        if (PartidaActiva) return;
         let partes = valor.split(",");
         MiId = parseInt(partes[0]);
         TotalJugadores = parseInt(partes[1]);
         IdImpostor = parseInt(partes[2]);
         SoyImpostor = (MiId == IdImpostor);
         iniciarPartida();
+    } else if (accion == "player_left") {
+        let leftId = parseInt(valor);
+        if (leftId >= 1 && leftId <= 4) {
+            Muertos[leftId] = true;
+            let rival = leftId == 1 ? Rival1 : (leftId == 2 ? Rival2 : (leftId == 3 ? Rival3 : Rival4));
+            if (rival) { sprites.destroy(rival); }
+            if (EnVotacion) { registrarVoto(0); }
+            if (leftId == IdImpostor && PartidaActiva && !PartidaTerminada) {
+                game.splash("IMPOSTOR DESCONECTADO", "Tripulantes ganan");
+                terminarPartida(true);
+            } else if (PartidaActiva && !PartidaTerminada) {
+                revisarVictoriaImpostor();
+            }
+        }
     } else if (accion == "pos") {
         let partesPos = valor.split(",");
         if (partesPos.length >= 3) {
