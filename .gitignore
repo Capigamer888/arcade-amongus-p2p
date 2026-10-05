@@ -1,0 +1,21 @@
+# Dependency directories
+node_modules/
+
+# Temporary and patch scripts
+*.js
+!docs/peerjs.min.js
+
+# Temporary json dumps
+*.json
+!pxt.json
+!images.g.jres
+!tilemap.g.jres
+
+# Scratch and test files
+test.html
+remote_main.ts
+orig_main.ts
+user_main.ts
+user_tilemap.g.jres
+temp_arcade/
+downloaded_main.ts

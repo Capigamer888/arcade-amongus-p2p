@@ -233,8 +233,14 @@ function obtenerSkinCadaver(idNum: number): Image {
     return SPRITE_MUERTO_AMARILLO;
 }
 
+function distCoords(x1: number, y1: number, x2: number, y2: number): number {
+    let dx = x1 - x2;
+    let dy = y1 - y2;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
 function dist(s1: Sprite, s2: Sprite): number {
-    return Math.sqrt((s1.x - s2.x) ** 2 + (s1.y - s2.y) ** 2);
+    return distCoords(s1.x, s1.y, s2.x, s2.y);
 }
 
 // === Variables Globales ===
@@ -280,6 +286,15 @@ let misMarcadoresTareas: Sprite[] = [];
 //                     FUNCIONES CORE
 // ============================================================
 
+function resetearRivalHub(r: Sprite, id: number) {
+    if (!r) return;
+    r.setImage(obtenerSkin(id));
+    r.setKind(SpriteKind.P2PRival);
+    r.setFlag(SpriteFlag.Invisible, false);
+    r.setFlag(SpriteFlag.GhostThroughWalls, true);
+    r.setPosition(75 + id * 12, 75);
+}
+
 function cargarHub() {
     MapaActual = "hub";
     PartidaActiva = false;
@@ -307,6 +322,12 @@ function cargarHub() {
     for (let c of ListaCadaveres) { c.destroy(); }
     ListaCadaveres = [];
 
+    // Resetear rivales
+    resetearRivalHub(Rival1, 1);
+    resetearRivalHub(Rival2, 2);
+    resetearRivalHub(Rival3, 3);
+    resetearRivalHub(Rival4, 4);
+
     if (!JugadorLocal) {
         JugadorLocal = sprites.create(obtenerSkin(MiId), SpriteKind.P2PLocal);
         controller.moveSprite(JugadorLocal, 90, 90);
@@ -325,6 +346,18 @@ function cargarHub() {
 MiId = 1;
 cargarHub();
 
+function prepararRivalPartida(r: Sprite, id: number): Sprite {
+    if (!r) {
+        r = sprites.create(obtenerSkin(id), SpriteKind.P2PRival);
+        r.setFlag(SpriteFlag.GhostThroughWalls, true);
+    }
+    r.setImage(obtenerSkin(id));
+    r.setKind(SpriteKind.P2PRival);
+    r.setFlag(SpriteFlag.Invisible, false);
+    r.setPosition(400, 150);
+    return r;
+}
+
 function iniciarPartida() {
     MapaActual = "skeld";
     PartidaActiva = true;
@@ -332,6 +365,8 @@ function iniciarPartida() {
     EnVotacion = false;
     TareasGlobales = 0;
     MaxTareasGlobales = Math.max(1, TotalJugadores - 1) * 3;
+    cooldownKill = game.runtime() + 10000;
+    
     tiles.setCurrentTilemap(assets.tilemap`Level_2`);
     scene.setBackgroundColor(15);
 
@@ -359,23 +394,11 @@ function iniciarPartida() {
     }
     controller.moveSprite(JugadorLocal, 90, 90);
 
-    // Crear o reposicionar rivales
-    if (TotalJugadores >= 2 && MiId != 1) { 
-        if(!Rival1) { Rival1 = sprites.create(obtenerSkin(1), SpriteKind.P2PRival); Rival1.setFlag(SpriteFlag.GhostThroughWalls, true); } 
-        Rival1.setPosition(400, 150); 
-    }
-    if (TotalJugadores >= 2 && MiId != 2) { 
-        if(!Rival2) { Rival2 = sprites.create(obtenerSkin(2), SpriteKind.P2PRival); Rival2.setFlag(SpriteFlag.GhostThroughWalls, true); } 
-        Rival2.setPosition(400, 150); 
-    }
-    if (TotalJugadores >= 3 && MiId != 3) { 
-        if(!Rival3) { Rival3 = sprites.create(obtenerSkin(3), SpriteKind.P2PRival); Rival3.setFlag(SpriteFlag.GhostThroughWalls, true); } 
-        Rival3.setPosition(400, 150); 
-    }
-    if (TotalJugadores >= 4 && MiId != 4) { 
-        if(!Rival4) { Rival4 = sprites.create(obtenerSkin(4), SpriteKind.P2PRival); Rival4.setFlag(SpriteFlag.GhostThroughWalls, true); } 
-        Rival4.setPosition(400, 150); 
-    }
+    // Preparar rivales
+    if (TotalJugadores >= 2 && MiId != 1) Rival1 = prepararRivalPartida(Rival1, 1);
+    if (TotalJugadores >= 2 && MiId != 2) Rival2 = prepararRivalPartida(Rival2, 2);
+    if (TotalJugadores >= 3 && MiId != 3) Rival3 = prepararRivalPartida(Rival3, 3);
+    if (TotalJugadores >= 4 && MiId != 4) Rival4 = prepararRivalPartida(Rival4, 4);
 
     // Configurar tareas para tripulantes
     if (!SoyImpostor) {
@@ -387,7 +410,7 @@ function iniciarPartida() {
     if (SoyImpostor) {
         JugadorLocal.sayText("IMPOSTOR (Usa B para matar)", 5000);
     } else {
-        JugadorLocal.sayText("TRIPULANTE (Sigue la flecha para tareas)", 5000);
+        JugadorLocal.sayText("TRIPULANTE (Sigue la guia de tareas)", 5000);
     }
 }
 
@@ -413,7 +436,9 @@ function configurarTareasTripulante() {
     }
 
     if (baldosasValidas.length == 0) {
-        baldosasValidas = posiblesTareas.slice();
+        for (let t of posiblesTareas) {
+            baldosasValidas.push(t);
+        }
     }
 
     totalTareas = 3;
@@ -481,7 +506,7 @@ function actualizarGuiaTareasHUD() {
     let minDist = 99999;
     let nearestLoc: tiles.Location = null;
     for (let loc of misUbicacionesTareas) {
-        let d = Math.sqrt((JugadorLocal.x - loc.x) ** 2 + (JugadorLocal.y - loc.y) ** 2);
+        let d = distCoords(JugadorLocal.x, JugadorLocal.y, loc.x, loc.y);
         if (d < minDist) {
             minDist = d;
             nearestLoc = loc;
@@ -597,7 +622,7 @@ function actualizarPosRival(idNum: number, xVal: number, yVal: number) {
 //                     MUERTE Y CADÁVERES
 // ============================================================
 
-function aplicarMuerte(idNum: number, posX: number = 0, posY: number = 0) {
+function aplicarMuerte(idNum: number, posX: number, posY: number) {
     if (Muertos[idNum]) return;
     Muertos[idNum] = true;
 
@@ -701,6 +726,7 @@ function iniciarReunion(reporterId: number) {
     TiempoVotacion = 30;
     
     JugadorLocal.setPosition(400, 150);
+    controller.moveSprite(JugadorLocal, 0, 0); // Congelar movimiento durante la reunión
     game.splash("!REUNION DE EMERGENCIA!", "Reportado por Jugador " + reporterId);
     
     if (UI_Votacion) { UI_Votacion.destroy(); UI_Votacion = null; }
@@ -764,6 +790,13 @@ function procesarResultadoVotacion() {
     if (UI_Votacion) { UI_Votacion.destroy(); UI_Votacion = null; }
     EnVotacion = false;
     
+    // Restaurar movimiento
+    if (Muertos[MiId]) {
+        controller.moveSprite(JugadorLocal, 130, 130);
+    } else {
+        controller.moveSprite(JugadorLocal, 90, 90);
+    }
+    
     if (empate || expulsado == 0) {
         game.splash("NADIE FUE EXPULSADO", "Empate o saltaron el voto");
     } else {
@@ -772,6 +805,7 @@ function procesarResultadoVotacion() {
         if (MiId == expulsado) {
             JugadorLocal.setKind(SpriteKind.P2PCadaver);
             JugadorLocal.setFlag(SpriteFlag.GhostThroughWalls, true);
+            controller.moveSprite(JugadorLocal, 130, 130);
             JugadorLocal.sayText("FANTASMA", 5000);
         } else if (expulsado == 1 && Rival1) { Rival1.setFlag(SpriteFlag.Invisible, true); Rival1.setImage(SPRITE_FANTASMA); }
         else if (expulsado == 2 && Rival2) { Rival2.setFlag(SpriteFlag.Invisible, true); Rival2.setImage(SPRITE_FANTASMA); }
@@ -869,10 +903,10 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     
     // 2. Reportar cuerpo o emergencia
     if (PartidaActiva && !PartidaTerminada && !Muertos[MiId]) {
-        let distCafeteria = Math.sqrt((JugadorLocal.x - 400) ** 2 + (JugadorLocal.y - 150) ** 2);
+        let distCafeteria = distCoords(JugadorLocal.x, JugadorLocal.y, 400, 150);
         let cercaDeCadaver = false;
         for (let c of ListaCadaveres) {
-            if (Math.sqrt((JugadorLocal.x - c.x) ** 2 + (JugadorLocal.y - c.y) ** 2) <= 50) {
+            if (distCoords(JugadorLocal.x, JugadorLocal.y, c.x, c.y) <= 50) {
                 cercaDeCadaver = true;
                 break;
             }
@@ -904,7 +938,7 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         let idxCompletada = -1;
         for (let i = 0; i < misUbicacionesTareas.length; i++) {
             let loc = misUbicacionesTareas[i];
-            let d = Math.sqrt((JugadorLocal.x - loc.x) ** 2 + (JugadorLocal.y - loc.y) ** 2);
+            let d = distCoords(JugadorLocal.x, JugadorLocal.y, loc.x, loc.y);
             if (d <= 32) {
                 idxCompletada = i;
                 break;
@@ -1005,15 +1039,18 @@ game.onUpdateInterval(50, function () {
     }
 });
 
-// Timer de votación
+// Timer de votación (con failsafe a los 32s por si algún jugador está en pestaña en segundo plano)
 game.onUpdateInterval(1000, function() {
-    if (EnVotacion && TiempoVotacion > 0) {
+    if (EnVotacion && TiempoVotacion > -5) {
         TiempoVotacion--;
         actualizarImagenVotacion();
         if (TiempoVotacion <= 0 && !YaVote) {
             YaVote = true;
             redP2P.enviarDatos("vote", "0");
             registrarVoto(0);
+        }
+        if (TiempoVotacion <= -2 && EnVotacion) {
+            procesarResultadoVotacion();
         }
     }
 });
@@ -1041,7 +1078,7 @@ game.onUpdate(function() {
 
         let puedeHacerTarea = false;
         for (let loc of misUbicacionesTareas) {
-            let d = Math.sqrt((JugadorLocal.x - loc.x) ** 2 + (JugadorLocal.y - loc.y) ** 2);
+            let d = distCoords(JugadorLocal.x, JugadorLocal.y, loc.x, loc.y);
             if (d <= 32) {
                 puedeHacerTarea = true;
                 break;
@@ -1054,10 +1091,10 @@ game.onUpdate(function() {
 
     // Avisos de proximidad a cadáveres o botón de emergencia
     if (!Muertos[MiId] && !EnVotacion) {
-        let distCafeteria = Math.sqrt((JugadorLocal.x - 400) ** 2 + (JugadorLocal.y - 150) ** 2);
+        let distCafeteria = distCoords(JugadorLocal.x, JugadorLocal.y, 400, 150);
         let cercaDeCadaver = false;
         for (let c of ListaCadaveres) {
-            if (Math.sqrt((JugadorLocal.x - c.x) ** 2 + (JugadorLocal.y - c.y) ** 2) <= 50) {
+            if (distCoords(JugadorLocal.x, JugadorLocal.y, c.x, c.y) <= 50) {
                 cercaDeCadaver = true;
                 break;
             }
