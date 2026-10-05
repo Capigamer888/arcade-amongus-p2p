@@ -368,7 +368,7 @@ function iniciarPartida() {
     EnVotacion = false;
     TareasGlobales = 0;
     MaxTareasGlobales = Math.max(1, TotalJugadores - 1) * 3;
-    cooldownKill = game.runtime() + 10000;
+    cooldownKill = game.runtime() + 15000;
     cooldownEmergencia = game.runtime() + 15000;
     reunionesEmergenciaRestantes = 1;
     debounceBotonA = 0;
@@ -806,6 +806,7 @@ function procesarResultadoVotacion() {
     
     if (empate || expulsado <= 0) {
         cooldownEmergencia = game.runtime() + 25000;
+        cooldownKill = game.runtime() + 20000;
         debounceBotonA = game.runtime() + 1000;
         if (JugadorLocal) JugadorLocal.y = 200;
         game.splash("NADIE FUE EXPULSADO", "Empate o saltaron el voto");
@@ -833,6 +834,7 @@ function procesarResultadoVotacion() {
         
         // Cooldown y debounce para evitar el loop del botón de emergencia al salir del splash
         cooldownEmergencia = game.runtime() + 25000;
+        cooldownKill = game.runtime() + 20000;
         debounceBotonA = game.runtime() + 1000;
         if (JugadorLocal) JugadorLocal.y = 200;
 
@@ -1024,7 +1026,11 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
 controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     if (EnVotacion) return;
     if (SoyImpostor && PartidaActiva && !PartidaTerminada && JugadorLocal && !Muertos[MiId]) {
-        if (game.runtime() < cooldownKill) return;
+        if (game.runtime() < cooldownKill) {
+            let segs = Math.ceil((cooldownKill - game.runtime()) / 1000);
+            JugadorLocal.sayText("Cooldown: " + segs + "s", 1000);
+            return;
+        }
 
         let killRange = 35;
         let matoId = 0;
@@ -1042,7 +1048,7 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
         }
 
         if (matoId > 0) {
-            cooldownKill = game.runtime() + 10000;
+            cooldownKill = game.runtime() + 20000; // 20 segundos de recarga tras asesinar
             aplicarMuerte(matoId, vX, vY);
             redP2P.enviarDatos("kill", matoId + "," + Math.round(vX) + "," + Math.round(vY));
         }
@@ -1117,6 +1123,16 @@ game.onUpdate(function() {
             if (Rival2 && !Muertos[2] && dist(JugadorLocal, Rival2) <= killRange) puedeMatar = true;
             if (Rival3 && !Muertos[3] && dist(JugadorLocal, Rival3) <= killRange) puedeMatar = true;
             if (Rival4 && !Muertos[4] && dist(JugadorLocal, Rival4) <= killRange) puedeMatar = true;
+        } else {
+            let cercaDeAlguien = false;
+            if (Rival1 && !Muertos[1] && dist(JugadorLocal, Rival1) <= killRange) cercaDeAlguien = true;
+            if (Rival2 && !Muertos[2] && dist(JugadorLocal, Rival2) <= killRange) cercaDeAlguien = true;
+            if (Rival3 && !Muertos[3] && dist(JugadorLocal, Rival3) <= killRange) cercaDeAlguien = true;
+            if (Rival4 && !Muertos[4] && dist(JugadorLocal, Rival4) <= killRange) cercaDeAlguien = true;
+            if (cercaDeAlguien) {
+                let segs = Math.ceil((cooldownKill - game.runtime()) / 1000);
+                JugadorLocal.sayText("Kill en " + segs + "s", 200);
+            }
         }
         KillBtnUI.y = puedeMatar ? 98 + Math.sin(game.runtime()/100)*2 : 125;
     }
