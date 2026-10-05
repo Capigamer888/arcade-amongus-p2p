@@ -273,7 +273,7 @@ function actualizarBarraTareas() {
 }
 
 function crearUI() {
-    if (!SoyImpostor) {
+    if (true) {
         BarraTareasUI = sprites.create(image.create(100, 8), SpriteKind.Player);
         BarraTareasUI.setFlag(SpriteFlag.RelativeToCamera, true);
         BarraTareasUI.setPosition(80, 10);
@@ -303,7 +303,16 @@ f 2 2 f 1 1 1 1 f 2 2 f
             assets.tile`tile117`,
             assets.tile`tile85`,
             assets.tile`tile84`,
-            assets.tile`tile112`
+            assets.tile`tile112`,
+            assets.tile`tile113`,
+            assets.tile`tile114`,
+            assets.tile`tile115`,
+            assets.tile`tile116`,
+            assets.tile`tile118`,
+            assets.tile`tile119`,
+            assets.tile`tile120`,
+            assets.tile`tile121`,
+            assets.tile`tile122`
         ];
         misTareasActivas = [];
         totalTareas = 3;
@@ -403,11 +412,9 @@ redP2P.alRecibir(function (accion: string, valor: string) {
             terminarPartida(true);
         }
     } else if (accion == "task_win") {
-        PartidaTerminada = true;
-        game.over(SoyImpostor ? false : true, effects.confetti);
+        terminarPartida(true);
     } else if (accion == "impostor_win") {
-        PartidaTerminada = true;
-        game.over(SoyImpostor ? true : false, effects.melt);
+        terminarPartida(false);
     }
 });
 
@@ -466,9 +473,7 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
             actualizarBarraTareas();
             JugadorLocal.sayText("Tarea " + tareasCompletadas + "/" + totalTareas, 1000);
             if (tareasCompletadas >= totalTareas) {
-                redP2P.enviarDatos("task_win", "1");
-                PartidaTerminada = true;
-                game.over(true, effects.confetti);
+                
             }
         }
     }
@@ -536,9 +541,7 @@ game.onUpdate(function() {
         if (4 <= TotalJugadores && IdImpostor != 4 && !Muertos[4]) vivos++;
         
         if (TotalJugadores > 1 && vivos === 0) {
-            PartidaTerminada = true;
-            redP2P.enviarDatos("impostor_win", "1");
-            game.over(true, effects.melt);
+            if (MiId == 1) { redP2P.enviarDatos("impostor_win", "1"); terminarPartida(false); }
         }
     }
 });
