@@ -269,6 +269,9 @@ let TareasGlobales = 0;
 let MaxTareasGlobales = 3;
 let totalTareas = 3;
 let cooldownKill = 0;
+let cooldownEmergencia = 0;
+let reunionesEmergenciaRestantes = 1;
+let debounceBotonA = 0;
 
 let EnVotacion = false;
 let VotosRecibidos = 0;
@@ -366,6 +369,9 @@ function iniciarPartida() {
     TareasGlobales = 0;
     MaxTareasGlobales = Math.max(1, TotalJugadores - 1) * 3;
     cooldownKill = game.runtime() + 10000;
+    cooldownEmergencia = game.runtime() + 15000;
+    reunionesEmergenciaRestantes = 1;
+    debounceBotonA = 0;
     
     tiles.setCurrentTilemap(assets.tilemap`Level_2`);
     scene.setBackgroundColor(15);
@@ -488,7 +494,7 @@ function actualizarBarraTareas() {
 }
 
 function actualizarGuiaTareasHUD() {
-    if (!GuiaTareasUI || SoyImpostor || !PartidaActiva || PartidaTerminada || Muertos[MiId]) {
+    if (!GuiaTareasUI || SoyImpostor || !PartidaActiva || PartidaTerminada) {
         if (GuiaTareasUI) GuiaTareasUI.setFlag(SpriteFlag.Invisible, true);
         return;
     }
@@ -798,6 +804,9 @@ function procesarResultadoVotacion() {
     }
     
     if (empate || expulsado == 0) {
+        cooldownEmergencia = game.runtime() + 25000;
+        debounceBotonA = game.runtime() + 1000;
+        if (JugadorLocal) JugadorLocal.y = 200;
         game.splash("NADIE FUE EXPULSADO", "Empate o saltaron el voto");
     } else {
         game.splash("JUGADOR " + expulsado + " EXPULSADO", expulsado == IdImpostor ? "Era el Impostor" : "No era el Impostor");
@@ -814,12 +823,11 @@ function procesarResultadoVotacion() {
         
         Muertos[expulsado] = true;
         
-        // Reducir tareas requeridas si expulsan a un tripulante
-        if (expulsado != IdImpostor) {
-            MaxTareasGlobales = Math.max(1, MaxTareasGlobales - 3);
-            actualizarBarraTareas();
-        }
-        
+        // Cooldown y debounce para evitar el loop del botón de emergencia al salir del splash
+        cooldownEmergencia = game.runtime() + 25000;
+        debounceBotonA = game.runtime() + 1000;
+        if (JugadorLocal) JugadorLocal.y = 200;
+
         if (expulsado == IdImpostor) {
             redP2P.enviarDatos("task_win", "1");
             terminarPartida(true);
@@ -891,6 +899,8 @@ redP2P.alRecibir(function (accion: string, valor: string) {
 // ============================================================
 
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (game.runtime() < debounceBotonA) return;
+
     // 1. Votación
     if (EnVotacion && !YaVote) {
         YaVote = true;
@@ -903,7 +913,6 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     
     // 2. Reportar cuerpo o emergencia
     if (PartidaActiva && !PartidaTerminada && !Muertos[MiId]) {
-        let distCafeteria = distCoords(JugadorLocal.x, JugadorLocal.y, 400, 150);
         let cercaDeCadaver = false;
         for (let c of ListaCadaveres) {
             if (distCoords(JugadorLocal.x, JugadorLocal.y, c.x, c.y) <= 50) {
@@ -912,7 +921,24 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
             }
         }
         
-        if (cercaDeCadaver || distCafeteria <= 50) {
+        if (cercaDeCadaver) {
+            redP2P.enviarDatos("report", MiId.toString());
+            iniciarReunion(MiId);
+            return;
+        }
+
+        let distCafeteria = distCoords(JugadorLocal.x, JugadorLocal.y, 400, 150);
+        if (distCafeteria <= 50) {
+            if (game.runtime() < cooldownEmergencia) {
+                let segs = Math.ceil((cooldownEmergencia - game.runtime()) / 1000);
+                JugadorLocal.sayText("Espera " + segs + "s", 1200);
+                return;
+            }
+            if (reunionesEmergenciaRestantes <= 0) {
+                JugadorLocal.sayText("Sin reuniones restantes", 1200);
+                return;
+            }
+            reunionesEmergenciaRestantes--;
             redP2P.enviarDatos("report", MiId.toString());
             iniciarReunion(MiId);
             return;
@@ -933,8 +959,8 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         return;
     }
 
-    // 4. Hacer tareas (Alcance de 32 píxeles a cualquier ubicación de tarea asignada)
-    if (!SoyImpostor && PartidaActiva && !PartidaTerminada && !Muertos[MiId]) {
+    // 4. Hacer tareas (Tripulantes vivos y fantasmas pueden hacer sus tareas)
+    if (!SoyImpostor && PartidaActiva && !PartidaTerminada) {
         let idxCompletada = -1;
         for (let i = 0; i < misUbicacionesTareas.length; i++) {
             let loc = misUbicacionesTareas[i];
@@ -1073,7 +1099,7 @@ game.onUpdate(function() {
     }
 
     // Actualizar guía de tareas y botón para Tripulante
-    if (!SoyImpostor && !Muertos[MiId]) {
+    if (!SoyImpostor) {
         actualizarGuiaTareasHUD();
 
         let puedeHacerTarea = false;
@@ -1102,7 +1128,14 @@ game.onUpdate(function() {
         if (cercaDeCadaver) {
             JugadorLocal.sayText("!REPORTAR CUERPO [A]!", 200);
         } else if (distCafeteria <= 50) {
-            JugadorLocal.sayText("!EMERGENCIA [A]!", 200);
+            if (game.runtime() >= cooldownEmergencia && reunionesEmergenciaRestantes > 0) {
+                JugadorLocal.sayText("!EMERGENCIA [A]!", 200);
+            } else if (reunionesEmergenciaRestantes <= 0) {
+                JugadorLocal.sayText("Boton agotado", 200);
+            } else {
+                let segs = Math.ceil((cooldownEmergencia - game.runtime()) / 1000);
+                JugadorLocal.sayText("Boton: " + segs + "s", 200);
+            }
         }
     }
 });
