@@ -351,7 +351,7 @@
         type: "messagepacket",
         channel: "amogus",
         broadcast: true,
-        data: new Uint8Array(encoded).buffer
+        data: new Uint8Array(encoded)
       };
       const msgDirecto = {
         canal: "amogus_in",
@@ -668,10 +668,10 @@
           }
         });
 
-        hostConn.on("close", () => {
-          statusText.innerText = "El Host cerró la sala o se desconectó.";
-          showToast("Desconectado de la sala");
-        });
+        hostConn.on("close", () => { alert("El Host se ha desconectado. La sala se ha cerrado."); location.reload(); });
+
+
+
       });
     }
 
