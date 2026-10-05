@@ -174,6 +174,7 @@ let Rival4: Sprite = null;
 
 let KillBtnUI: Sprite = null;
 let TaskBtnUI: Sprite = null;
+let BarraTareasUI: Sprite = null;
 let tareasCompletadas = 0;
 let totalTareas = 3;
 let cooldownKill = 0;
@@ -189,6 +190,8 @@ function cargarHub() {
 
     if (KillBtnUI) { sprites.destroy(KillBtnUI); KillBtnUI = null; }
     if (TaskBtnUI) { sprites.destroy(TaskBtnUI); TaskBtnUI = null; }
+    if (BarraTareasUI) { sprites.destroy(BarraTareasUI); BarraTareasUI = null; }
+    tareasCompletadas = 0;
 
     if (!JugadorLocal) {
         JugadorLocal = sprites.create(obtenerSkin(MiId), SpriteKind.P2PLocal);
@@ -240,13 +243,30 @@ function iniciarPartida() {
     crearUI();
 
     if (SoyImpostor) {
-        game.splash("ERES EL IMPOSTOR", "Usa B para eliminar");
+        JugadorLocal.sayText("IMPOSTOR (Usa B para matar)", 5000);
     } else {
-        game.splash("ERES TRIPULANTE", "Usa A para tareas");
+        JugadorLocal.sayText("TRIPULANTE (Usa A para tareas)", 5000);
     }
 }
 
+function actualizarBarraTareas() {
+    if (!BarraTareasUI) return;
+    let imgBarra = image.create(100, 8);
+    imgBarra.fillRect(0, 0, 100, 8, 15); // Borde negro
+    let fillW = Math.round((tareasCompletadas / totalTareas) * 98);
+    if (fillW > 0) imgBarra.fillRect(1, 1, fillW, 6, 7); // Relleno verde
+    BarraTareasUI.setImage(imgBarra);
+}
+
 function crearUI() {
+    if (!SoyImpostor) {
+        BarraTareasUI = sprites.create(image.create(100, 8), SpriteKind.Player);
+        BarraTareasUI.setFlag(SpriteFlag.RelativeToCamera, true);
+        BarraTareasUI.setPosition(80, 10);
+        BarraTareasUI.z = 100;
+        actualizarBarraTareas();
+    }
+    
     if (SoyImpostor) {
         KillBtnUI = sprites.create(img`
 . . . . f f f f . . . .
@@ -320,7 +340,7 @@ function aplicarMuerte(idNum: number) {
         JugadorLocal.setKind(SpriteKind.P2PCadaver);
         JugadorLocal.setFlag(SpriteFlag.GhostThroughWalls, true);
         controller.moveSprite(JugadorLocal, 150, 150);
-        game.splash("HAS SIDO ASESINADO");
+        JugadorLocal.sayText("HAS SIDO ASESINADO", 5000);
         
         if (Rival1 && Muertos[1]) Rival1.setFlag(SpriteFlag.Invisible, false);
         if (Rival2 && Muertos[2]) Rival2.setFlag(SpriteFlag.Invisible, false);
@@ -398,6 +418,7 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
 
         if (completada) {
             tareasCompletadas++;
+            actualizarBarraTareas();
             JugadorLocal.sayText("Tarea " + tareasCompletadas + "/" + totalTareas, 1000);
             if (tareasCompletadas >= totalTareas) {
                 redP2P.enviarDatos("task_win", "1");
