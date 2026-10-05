@@ -232,10 +232,10 @@ function iniciarPartida() {
     controller.moveSprite(JugadorLocal, 90, 90);
 
     // Asegurarse que todos aparezcan en start (los creamos dinámicamente o aquí)
-    if (TotalJugadores >= 2 && MiId != 1) { if(!Rival1) Rival1 = sprites.create(obtenerSkin(1), SpriteKind.P2PRival); Rival1.setPosition(400,150); }
-    if (TotalJugadores >= 2 && MiId != 2) { if(!Rival2) Rival2 = sprites.create(obtenerSkin(2), SpriteKind.P2PRival); Rival2.setPosition(400,150); }
-    if (TotalJugadores >= 3 && MiId != 3) { if(!Rival3) Rival3 = sprites.create(obtenerSkin(3), SpriteKind.P2PRival); Rival3.setPosition(400,150); }
-    if (TotalJugadores >= 4 && MiId != 4) { if(!Rival4) Rival4 = sprites.create(obtenerSkin(4), SpriteKind.P2PRival); Rival4.setPosition(400,150); }
+    if (TotalJugadores >= 2 && MiId != 1) { if(!Rival1) { Rival1 = sprites.create(obtenerSkin(1), SpriteKind.P2PRival); Rival1.setFlag(SpriteFlag.GhostThroughWalls, true); } Rival1.setPosition(400,150); }
+    if (TotalJugadores >= 2 && MiId != 2) { if(!Rival2) { Rival2 = sprites.create(obtenerSkin(2), SpriteKind.P2PRival); Rival2.setFlag(SpriteFlag.GhostThroughWalls, true); } Rival2.setPosition(400,150); }
+    if (TotalJugadores >= 3 && MiId != 3) { if(!Rival3) { Rival3 = sprites.create(obtenerSkin(3), SpriteKind.P2PRival); Rival3.setFlag(SpriteFlag.GhostThroughWalls, true); } Rival3.setPosition(400,150); }
+    if (TotalJugadores >= 4 && MiId != 4) { if(!Rival4) { Rival4 = sprites.create(obtenerSkin(4), SpriteKind.P2PRival); Rival4.setFlag(SpriteFlag.GhostThroughWalls, true); } Rival4.setPosition(400,150); }
 
     crearUI();
 
@@ -299,16 +299,16 @@ f 5 5 f 1 1 1 1 f 5 5 f
 
 function actualizarPosRival(idNum: number, xVal: number, yVal: number) {
     if (idNum == 1) { 
-        if(!Rival1) Rival1 = sprites.create(obtenerSkin(1), SpriteKind.P2PRival);
+        if(!Rival1) { Rival1 = sprites.create(obtenerSkin(1), SpriteKind.P2PRival); Rival1.setFlag(SpriteFlag.GhostThroughWalls, true); }
         Rival1.x = xVal; Rival1.y = yVal; 
     } else if (idNum == 2) { 
-        if(!Rival2) Rival2 = sprites.create(obtenerSkin(2), SpriteKind.P2PRival);
+        if(!Rival2) { Rival2 = sprites.create(obtenerSkin(2), SpriteKind.P2PRival); Rival2.setFlag(SpriteFlag.GhostThroughWalls, true); }
         Rival2.x = xVal; Rival2.y = yVal; 
     } else if (idNum == 3) { 
-        if(!Rival3) Rival3 = sprites.create(obtenerSkin(3), SpriteKind.P2PRival);
+        if(!Rival3) { Rival3 = sprites.create(obtenerSkin(3), SpriteKind.P2PRival); Rival3.setFlag(SpriteFlag.GhostThroughWalls, true); }
         Rival3.x = xVal; Rival3.y = yVal; 
     } else if (idNum == 4) { 
-        if(!Rival4) Rival4 = sprites.create(obtenerSkin(4), SpriteKind.P2PRival);
+        if(!Rival4) { Rival4 = sprites.create(obtenerSkin(4), SpriteKind.P2PRival); Rival4.setFlag(SpriteFlag.GhostThroughWalls, true); }
         Rival4.x = xVal; Rival4.y = yVal; 
     }
 }
