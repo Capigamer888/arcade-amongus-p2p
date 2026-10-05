@@ -265,10 +265,21 @@ function iniciarPartida() {
 
 function actualizarBarraTareas() {
     if (!BarraTareasUI) return;
-    let imgBarra = image.create(100, 8);
-    imgBarra.fillRect(0, 0, 100, 8, 15); // Borde negro
-    let fillW = Math.round((TareasGlobales / MaxTareasGlobales) * 98);
-    if (fillW > 0) imgBarra.fillRect(1, 1, fillW, 6, 7); // Relleno verde
+    let imgBarra = image.create(100, 12);
+    imgBarra.fillRect(0, 0, 100, 12, 15); // Fondo negro
+    // Barra de progreso de fondo oscuro (opcional)
+    imgBarra.fillRect(1, 1, 98, 10, 11); 
+    
+    // Calcular ancho verde
+    let fillW = Math.round((TareasGlobales / Math.max(1, MaxTareasGlobales)) * 98);
+    if (fillW > 0) {
+        imgBarra.fillRect(1, 1, fillW, 10, 7); // Barra verde debajo del texto
+    }
+    
+    // Imprimir texto encima
+    let txt = "TAREAS " + TareasGlobales + "/" + MaxTareasGlobales;
+    imgBarra.printCenter(txt, 2, 1, image.font8);
+    
     BarraTareasUI.setImage(imgBarra);
 }
 
