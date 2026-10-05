@@ -197,7 +197,7 @@ let Rival4: Sprite = null;
 let KillBtnUI: Sprite = null;
 let TaskBtnUI: Sprite = null;
 let BarraTareasUI: Sprite = null;
-let tareasCompletadas = 0; TareasGlobales = 0;
+let tareasCompletadas = 0;
 let TareasGlobales = 0;
 let MaxTareasGlobales = 3;
 let totalTareas = 3;
@@ -206,26 +206,34 @@ let EnVotacion = false;
 let VotosRecibidos = 0;
 let MisVotos: number[] = [0, 0, 0, 0, 0];
 let VotoSeleccionado = 0;
-    TiempoVotacion = 30;
 let UI_Votacion: Sprite = null;
 let YaVote = false;
 let TiempoVotacion = 0;
 
-
 let misTareasActivas: Image[] = [];
 
-// Inicio por defecto en Hub
+// ============================================================
+//                     FUNCIONES CORE
+// ============================================================
+
 function cargarHub() {
     MapaActual = "hub";
     PartidaActiva = false;
     PartidaTerminada = false;
+    EnVotacion = false;
     tiles.setCurrentTilemap(assets.tilemap`Level_0`);
-    scene.setBackgroundColor(11); // Fondo celeste
+    scene.setBackgroundColor(11);
 
     if (KillBtnUI) { sprites.destroy(KillBtnUI); KillBtnUI = null; }
     if (TaskBtnUI) { sprites.destroy(TaskBtnUI); TaskBtnUI = null; }
     if (BarraTareasUI) { sprites.destroy(BarraTareasUI); BarraTareasUI = null; }
+    if (UI_Votacion) { UI_Votacion.destroy(); UI_Votacion = null; }
     tareasCompletadas = 0;
+    TareasGlobales = 0;
+
+    // Limpiar cadáveres
+    for (let c of ListaCadaveres) { c.destroy(); }
+    ListaCadaveres = [];
 
     if (!JugadorLocal) {
         JugadorLocal = sprites.create(obtenerSkin(MiId), SpriteKind.P2PLocal);
@@ -233,32 +241,35 @@ function cargarHub() {
         scene.cameraFollowSprite(JugadorLocal);
     } else {
         JugadorLocal.setImage(obtenerSkin(MiId));
+        JugadorLocal.setKind(SpriteKind.P2PLocal);
+        JugadorLocal.setFlag(SpriteFlag.GhostThroughWalls, false);
     }
     
-    // Intentar buscar una baldosa de piso válida en el Hub para no caer en el vacío negro
-    let pisoHub = assets.tile`tile9`;
-    if (pisoHub) {
-        tiles.placeOnTile(JugadorLocal, tiles.getTileLocation(5, 5));
-    } else {
-        tiles.placeOnTile(JugadorLocal, tiles.getTileLocation(5, 5));
-    }
+    tiles.placeOnTile(JugadorLocal, tiles.getTileLocation(5, 5));
     controller.moveSprite(JugadorLocal, 90, 90);
-
-    
 }
 
-// Llamar al Hub enseguida si abres el juego
+// Inicio
+MiId = 1;
 cargarHub();
 
 function iniciarPartida() {
     MapaActual = "skeld";
     PartidaActiva = true;
     PartidaTerminada = false;
+    EnVotacion = false;
+    TareasGlobales = 0;
+    MaxTareasGlobales = Math.max(1, TotalJugadores - 1) * 3;
     tiles.setCurrentTilemap(assets.tilemap`Level_2`);
-    scene.setBackgroundColor(15); // Fondo negro para The Skeld
+    scene.setBackgroundColor(15);
 
     if (KillBtnUI) { sprites.destroy(KillBtnUI); KillBtnUI = null; }
     if (TaskBtnUI) { sprites.destroy(TaskBtnUI); TaskBtnUI = null; }
+    if (BarraTareasUI) { sprites.destroy(BarraTareasUI); BarraTareasUI = null; }
+
+    // Limpiar cadáveres previos
+    for (let c of ListaCadaveres) { c.destroy(); }
+    ListaCadaveres = [];
 
     // Reposicionar local
     let tileCentro = assets.tile`tile32`;
@@ -269,7 +280,7 @@ function iniciarPartida() {
     }
     controller.moveSprite(JugadorLocal, 90, 90);
 
-    // Asegurarse que todos aparezcan en start (los creamos dinámicamente o aquí)
+    // Crear rivales
     if (TotalJugadores >= 2 && MiId != 1) { if(!Rival1) { Rival1 = sprites.create(obtenerSkin(1), SpriteKind.P2PRival); Rival1.setFlag(SpriteFlag.GhostThroughWalls, true); } Rival1.setPosition(400,150); }
     if (TotalJugadores >= 2 && MiId != 2) { if(!Rival2) { Rival2 = sprites.create(obtenerSkin(2), SpriteKind.P2PRival); Rival2.setFlag(SpriteFlag.GhostThroughWalls, true); } Rival2.setPosition(400,150); }
     if (TotalJugadores >= 3 && MiId != 3) { if(!Rival3) { Rival3 = sprites.create(obtenerSkin(3), SpriteKind.P2PRival); Rival3.setFlag(SpriteFlag.GhostThroughWalls, true); } Rival3.setPosition(400,150); }
@@ -284,34 +295,38 @@ function iniciarPartida() {
     }
 }
 
+// ============================================================
+//                     BARRA DE TAREAS
+// ============================================================
+
 function actualizarBarraTareas() {
     if (!BarraTareasUI) return;
     let imgBarra = image.create(100, 12);
-    imgBarra.fillRect(0, 0, 100, 12, 15); // Fondo negro
-    // Barra de progreso de fondo oscuro (opcional)
-    imgBarra.fillRect(1, 1, 98, 10, 11); 
+    imgBarra.fillRect(0, 0, 100, 12, 15);
+    imgBarra.fillRect(1, 1, 98, 10, 11);
     
-    // Calcular ancho verde
     let fillW = Math.round((TareasGlobales / Math.max(1, MaxTareasGlobales)) * 98);
     if (fillW > 0) {
-        imgBarra.fillRect(1, 1, fillW, 10, 7); // Barra verde debajo del texto
+        imgBarra.fillRect(1, 1, fillW, 10, 7);
     }
     
-    // Imprimir texto encima
-    let txt = "TAREAS " + TareasGlobales + "/" + MaxTareasGlobales;
+    let txt = "" + TareasGlobales + "/" + MaxTareasGlobales;
     imgBarra.printCenter(txt, 2, 1, image.font8);
     
     BarraTareasUI.setImage(imgBarra);
 }
 
+// ============================================================
+//                     CREAR UI
+// ============================================================
+
 function crearUI() {
-    if (true) {
-        BarraTareasUI = sprites.create(image.create(100, 8), SpriteKind.Player);
-        BarraTareasUI.setFlag(SpriteFlag.RelativeToCamera, true);
-        BarraTareasUI.setPosition(80, 10);
-        BarraTareasUI.z = 100;
-        actualizarBarraTareas();
-    }
+    // Barra de tareas para TODOS los jugadores
+    BarraTareasUI = sprites.create(image.create(100, 12), SpriteKind.Player);
+    BarraTareasUI.setFlag(SpriteFlag.RelativeToCamera, true);
+    BarraTareasUI.setPosition(80, 10);
+    BarraTareasUI.z = 100;
+    actualizarBarraTareas();
     
     if (SoyImpostor) {
         KillBtnUI = sprites.create(img`
@@ -335,20 +350,12 @@ f 2 2 f 1 1 1 1 f 2 2 f
             assets.tile`tile117`,
             assets.tile`tile85`,
             assets.tile`tile84`,
-            assets.tile`tile112`,
-            assets.tile`tile113`,
-            assets.tile`tile114`,
-            assets.tile`tile115`,
-            assets.tile`tile116`,
-            assets.tile`tile118`,
-            assets.tile`tile119`,
-            assets.tile`tile120`,
-            assets.tile`tile121`,
-            assets.tile`tile122`
+            assets.tile`tile112`
         ];
         misTareasActivas = [];
         totalTareas = 3;
         for (let i = 0; i < totalTareas; i++) {
+            if (posiblesTareas.length == 0) break;
             let rndIdx = Math.randomRange(0, posiblesTareas.length - 1);
             misTareasActivas.push(posiblesTareas[rndIdx]);
             posiblesTareas.removeAt(rndIdx);
@@ -372,7 +379,12 @@ f 5 5 f 1 1 1 1 f 5 5 f
     }
 }
 
+// ============================================================
+//                     POSICIONES RIVALES
+// ============================================================
+
 function actualizarPosRival(idNum: number, xVal: number, yVal: number) {
+    if (idNum == MiId) return;
     if (idNum == 1) { 
         if(!Rival1) { Rival1 = sprites.create(obtenerSkin(1), SpriteKind.P2PRival); Rival1.setFlag(SpriteFlag.GhostThroughWalls, true); }
         Rival1.x = xVal; Rival1.y = yVal; 
@@ -388,6 +400,10 @@ function actualizarPosRival(idNum: number, xVal: number, yVal: number) {
     }
 }
 
+// ============================================================
+//                     MUERTE
+// ============================================================
+
 function aplicarMuerte(idNum: number) {
     Muertos[idNum] = true;
     if (idNum == MiId && JugadorLocal) {
@@ -397,21 +413,187 @@ function aplicarMuerte(idNum: number) {
         controller.moveSprite(JugadorLocal, 150, 150);
         JugadorLocal.sayText("HAS SIDO ASESINADO", 5000);
         
+        // Mostrar otros fantasmas
         if (Rival1 && Muertos[1]) Rival1.setFlag(SpriteFlag.Invisible, false);
         if (Rival2 && Muertos[2]) Rival2.setFlag(SpriteFlag.Invisible, false);
         if (Rival3 && Muertos[3]) Rival3.setFlag(SpriteFlag.Invisible, false);
         if (Rival4 && Muertos[4]) Rival4.setFlag(SpriteFlag.Invisible, false);
     } else {
-        let rVal = idNum == 1 ? Rival1 : (idNum == 2 ? Rival2 : (idNum == 3 ? Rival3 : Rival4));
-        if (rVal) {
-            rVal.setImage(SPRITE_FANTASMA); 
-            rVal.setKind(SpriteKind.P2PCadaver);
+        // Crear cadáver en el suelo
+        let rival = idNum == 1 ? Rival1 : (idNum == 2 ? Rival2 : (idNum == 3 ? Rival3 : Rival4));
+        if (rival) {
+            let cadaver = sprites.create(SPRITE_CADAVER, SpriteKind.P2PCadaver);
+            cadaver.setPosition(rival.x, rival.y);
+            cadaver.setFlag(SpriteFlag.GhostThroughWalls, true);
+            cadaver.z = -1;
+            ListaCadaveres.push(cadaver);
+            
+            rival.setImage(SPRITE_FANTASMA); 
+            rival.setKind(SpriteKind.P2PCadaver);
             if (!Muertos[MiId]) {
-                rVal.setFlag(SpriteFlag.Invisible, true);
+                rival.setFlag(SpriteFlag.Invisible, true);
+            }
+        }
+    }
+    
+    // Revisar victoria del impostor
+    revisarVictoriaImpostor();
+}
+
+// ============================================================
+//                     VICTORIA
+// ============================================================
+
+function revisarVictoriaImpostor() {
+    let vivosNoImpostor = 0;
+    for (let i = 1; i <= TotalJugadores; i++) {
+        if (i != IdImpostor && !Muertos[i]) vivosNoImpostor++;
+    }
+    
+    // Impostor gana cuando quedan igual o menos tripulantes vivos que impostores (1)
+    if (TotalJugadores > 1 && vivosNoImpostor <= 1) {
+        redP2P.enviarDatos("impostor_win", "1");
+        terminarPartida(false);
+    }
+}
+
+function terminarPartida(tripulantesGanan: boolean) {
+    if (PartidaTerminada) return;
+    PartidaTerminada = true;
+    
+    let colorFondo = tripulantesGanan ? 8 : 2;
+    scene.setBackgroundColor(colorFondo);
+    
+    let txt = tripulantesGanan ? "VICTORIA TRIPULANTES" : "VICTORIA IMPOSTOR";
+    let txt2 = tripulantesGanan ? "Tareas listas / Impostor fuera" : "Tripulacion eliminada";
+    
+    game.splash(txt, txt2);
+    
+    for (let i = 1; i <= 4; i++) Muertos[i] = false;
+    cargarHub();
+}
+
+// ============================================================
+//                     REUNIÓN Y VOTACIÓN
+// ============================================================
+
+function iniciarReunion(reporterId: number) {
+    if (PartidaTerminada || EnVotacion) return;
+    
+    // Limpiar cadáveres del suelo
+    for (let c of ListaCadaveres) { c.destroy(); }
+    ListaCadaveres = [];
+    
+    EnVotacion = true;
+    YaVote = false;
+    VotosRecibidos = 0;
+    MisVotos = [0, 0, 0, 0, 0];
+    VotoSeleccionado = 0;
+    TiempoVotacion = 30;
+    
+    JugadorLocal.setPosition(400, 150);
+    game.splash("!REUNION DE EMERGENCIA!", "Reportado por Jugador " + reporterId);
+    
+    if (UI_Votacion) { UI_Votacion.destroy(); UI_Votacion = null; }
+    UI_Votacion = sprites.create(image.create(160, 40), SpriteKind.Player);
+    UI_Votacion.setFlag(SpriteFlag.RelativeToCamera, true);
+    UI_Votacion.setPosition(80, 90);
+    UI_Votacion.z = 200;
+    
+    actualizarImagenVotacion();
+}
+
+function actualizarImagenVotacion() {
+    if (!UI_Votacion) return;
+    let imgV = image.create(160, 40);
+    imgV.fillRect(0, 0, 160, 40, 15);
+    imgV.fillRect(1, 1, 158, 38, 1);
+    
+    let txtV = VotoSeleccionado == 0 ? "OMITIR" : "JUGADOR " + VotoSeleccionado;
+    let colorTexto = VotoSeleccionado == 0 ? 1 : VotoSeleccionado == 1 ? 2 : VotoSeleccionado == 2 ? 8 : VotoSeleccionado == 3 ? 7 : 5;
+    
+    imgV.printCenter("VOTAR A: " + txtV, 2, colorTexto, image.font8);
+    imgV.printCenter("< IZQ | DER >  A=Confirmar", 14, 1, image.font5);
+    imgV.printCenter("TIEMPO: " + TiempoVotacion + "s", 24, 2, image.font8);
+    
+    if (YaVote) {
+        imgV.fillRect(0, 0, 160, 40, 15);
+        imgV.printCenter("ESPERANDO VOTOS...", 10, 1, image.font8);
+        imgV.printCenter("TIEMPO: " + TiempoVotacion + "s", 24, 2, image.font5);
+    }
+    
+    UI_Votacion.setImage(imgV);
+}
+
+function registrarVoto(votoId: number) {
+    VotosRecibidos++;
+    MisVotos[votoId]++;
+    
+    let vivos = 0;
+    for (let i = 1; i <= TotalJugadores; i++) if (!Muertos[i]) vivos++;
+    
+    if (VotosRecibidos >= vivos) {
+        procesarResultadoVotacion();
+    }
+}
+
+function procesarResultadoVotacion() {
+    let maxVotos = 0;
+    let expulsado = -1;
+    let empate = false;
+    
+    for (let i = 0; i <= 4; i++) {
+        if (MisVotos[i] > maxVotos) {
+            maxVotos = MisVotos[i];
+            expulsado = i;
+            empate = false;
+        } else if (MisVotos[i] == maxVotos && maxVotos > 0) {
+            empate = true;
+        }
+    }
+    
+    if (UI_Votacion) { UI_Votacion.destroy(); UI_Votacion = null; }
+    EnVotacion = false;
+    
+    if (empate || expulsado == 0) {
+        game.splash("NADIE FUE EXPULSADO", "Empate o saltaron el voto");
+    } else {
+        game.splash("JUGADOR " + expulsado + " EXPULSADO", expulsado == IdImpostor ? "Era el Impostor" : "No era el Impostor");
+        
+        if (MiId == expulsado) {
+            JugadorLocal.setKind(SpriteKind.P2PCadaver);
+            JugadorLocal.setFlag(SpriteFlag.GhostThroughWalls, true);
+            JugadorLocal.sayText("FANTASMA", 5000);
+        } else if (expulsado == 1 && Rival1) { Rival1.setFlag(SpriteFlag.Invisible, true); Rival1.setImage(SPRITE_FANTASMA); }
+        else if (expulsado == 2 && Rival2) { Rival2.setFlag(SpriteFlag.Invisible, true); Rival2.setImage(SPRITE_FANTASMA); }
+        else if (expulsado == 3 && Rival3) { Rival3.setFlag(SpriteFlag.Invisible, true); Rival3.setImage(SPRITE_FANTASMA); }
+        else if (expulsado == 4 && Rival4) { Rival4.setFlag(SpriteFlag.Invisible, true); Rival4.setImage(SPRITE_FANTASMA); }
+        
+        Muertos[expulsado] = true;
+        
+        // Reducir tareas si expulsan a un tripulante
+        if (expulsado != IdImpostor) {
+            MaxTareasGlobales = Math.max(1, MaxTareasGlobales - 3);
+            actualizarBarraTareas();
+        }
+        
+        // Verificar victoria
+        if (expulsado == IdImpostor) {
+            redP2P.enviarDatos("task_win", "1");
+            terminarPartida(true);
+        } else {
+            revisarVictoriaImpostor();
+            if (!PartidaTerminada && TareasGlobales >= MaxTareasGlobales) {
+                redP2P.enviarDatos("task_win", "1");
+                terminarPartida(true);
             }
         }
     }
 }
+
+// ============================================================
+//                     RED P2P - RECIBIR
+// ============================================================
 
 redP2P.alRecibir(function (accion: string, valor: string) {
     if (accion == "set_player") {
@@ -419,7 +601,7 @@ redP2P.alRecibir(function (accion: string, valor: string) {
         if (pId >= 1 && pId <= 4) {
             MiId = pId;
             SoyImpostor = (MiId == IdImpostor);
-            cargarHub();
+            if (!PartidaActiva) cargarHub();
         }
     } else if (accion == "setup_partida") {
         let partes = valor.split(",");
@@ -432,14 +614,16 @@ redP2P.alRecibir(function (accion: string, valor: string) {
         let partesPos = valor.split(",");
         if (partesPos.length >= 3) {
             let idRemoto = parseInt(partesPos[0]);
-            if (idRemoto != MiId) { actualizarPosRival(idRemoto, parseFloat(partesPos[1]), parseFloat(partesPos[2])); }
+            if (idRemoto != MiId) {
+                actualizarPosRival(idRemoto, parseFloat(partesPos[1]), parseFloat(partesPos[2]));
+            }
         }
     } else if (accion == "kill") {
         aplicarMuerte(parseInt(valor));
     } else if (accion == "task_sync") {
         TareasGlobales++;
         actualizarBarraTareas();
-        if (MiId == 1 && TareasGlobales >= MaxTareasGlobales) {
+        if (TareasGlobales >= MaxTareasGlobales) {
             redP2P.enviarDatos("task_win", "1");
             terminarPartida(true);
         }
@@ -451,10 +635,17 @@ redP2P.alRecibir(function (accion: string, valor: string) {
         terminarPartida(true);
     } else if (accion == "impostor_win") {
         terminarPartida(false);
+    } else if (accion == "imp_win") {
+        terminarPartida(false);
     }
 });
 
+// ============================================================
+//                     BOTÓN A - INTERACCIÓN
+// ============================================================
+
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
+    // 1. Votación
     if (EnVotacion && !YaVote) {
         YaVote = true;
         actualizarImagenVotacion();
@@ -462,12 +653,15 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         registrarVoto(VotoSeleccionado);
         return;
     }
+    if (EnVotacion) return;
     
-    if (PartidaActiva && !PartidaTerminada && !Muertos[MiId] && !EnVotacion) {
-        let distCafeteria = Math.sqrt((JugadorLocal.x - 400)**2 + (JugadorLocal.y - 150)**2);
+    // 2. Reportar cuerpo o emergencia
+    if (PartidaActiva && !PartidaTerminada && !Muertos[MiId]) {
+        let distCafeteria = Math.sqrt((JugadorLocal.x - 400) ** 2 + (JugadorLocal.y - 150) ** 2);
         let puedeReportar = (distCafeteria < 60);
+        
         for (let c of ListaCadaveres) {
-            if (Math.sqrt((JugadorLocal.x - c.x)**2 + (JugadorLocal.y - c.y)**2) < 40) {
+            if (Math.sqrt((JugadorLocal.x - c.x) ** 2 + (JugadorLocal.y - c.y) ** 2) < 40) {
                 puedeReportar = true;
             }
         }
@@ -479,10 +673,10 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         }
     }
     
-    if (EnVotacion) return;
+    // 3. Iniciar partida (Host solo)
     if (!PartidaActiva && MiId == 1) {
         redP2P.enviarDatos("req_start", "1");
-        // Fallback para probar offline dentro del editor de MakeCode
+        // Fallback offline
         setTimeout(function() {
             if (!PartidaActiva) {
                 TotalJugadores = 1;
@@ -494,6 +688,7 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
         return;
     }
 
+    // 4. Hacer tareas
     if (!SoyImpostor && PartidaActiva && !PartidaTerminada && !Muertos[MiId]) {
         let completada = false;
         
@@ -507,16 +702,24 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
 
         if (completada) {
             tareasCompletadas++;
+            TareasGlobales++;
             actualizarBarraTareas();
             JugadorLocal.sayText("Tarea " + tareasCompletadas + "/" + totalTareas, 1000);
-            if (tareasCompletadas >= totalTareas) {
-                
+            redP2P.enviarDatos("task_sync", "1");
+            if (TareasGlobales >= MaxTareasGlobales) {
+                redP2P.enviarDatos("task_win", "1");
+                terminarPartida(true);
             }
         }
     }
 });
 
+// ============================================================
+//                     BOTÓN B - MATAR
+// ============================================================
+
 controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (EnVotacion) return;
     if (SoyImpostor && PartidaActiva && !PartidaTerminada && JugadorLocal && !Muertos[MiId]) {
         if (game.runtime() < cooldownKill) return;
 
@@ -538,12 +741,59 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
     }
 });
 
+// ============================================================
+//             NAVEGACIÓN DE VOTACIÓN (IZQ / DER)
+// ============================================================
+
+controller.left.onEvent(ControllerButtonEvent.Pressed, function() {
+    if (EnVotacion && !YaVote) {
+        VotoSeleccionado--;
+        if (VotoSeleccionado < 0) VotoSeleccionado = TotalJugadores;
+        while (VotoSeleccionado > 0 && Muertos[VotoSeleccionado]) {
+            VotoSeleccionado--;
+            if (VotoSeleccionado < 0) VotoSeleccionado = TotalJugadores;
+        }
+        actualizarImagenVotacion();
+    }
+});
+
+controller.right.onEvent(ControllerButtonEvent.Pressed, function() {
+    if (EnVotacion && !YaVote) {
+        VotoSeleccionado++;
+        if (VotoSeleccionado > TotalJugadores) VotoSeleccionado = 0;
+        while (VotoSeleccionado > 0 && Muertos[VotoSeleccionado]) {
+            VotoSeleccionado++;
+            if (VotoSeleccionado > TotalJugadores) VotoSeleccionado = 0;
+        }
+        actualizarImagenVotacion();
+    }
+});
+
+// ============================================================
+//                     GAME LOOPS
+// ============================================================
+
+// Enviar posición cada 50ms
 game.onUpdateInterval(50, function () {
     if (JugadorLocal && !PartidaTerminada) {
         redP2P.enviarDatos("pos", MiId + "," + JugadorLocal.x + "," + JugadorLocal.y);
     }
 });
 
+// Timer de votación
+game.onUpdateInterval(1000, function() {
+    if (EnVotacion && TiempoVotacion > 0) {
+        TiempoVotacion--;
+        actualizarImagenVotacion();
+        if (TiempoVotacion <= 0 && !YaVote) {
+            YaVote = true;
+            redP2P.enviarDatos("vote", "0");
+            registrarVoto(0);
+        }
+    }
+});
+
+// UI Update
 game.onUpdate(function() {
     if (!PartidaActiva || PartidaTerminada) return;
 
@@ -568,212 +818,5 @@ game.onUpdate(function() {
             }
         }
         TaskBtnUI.y = puedeHacerTarea ? 98 + Math.sin(game.runtime()/100)*2 : 120;
-    }
-
-    if (SoyImpostor) {
-        let vivos = 0;
-        if (1 <= TotalJugadores && IdImpostor != 1 && !Muertos[1]) vivos++;
-        if (2 <= TotalJugadores && IdImpostor != 2 && !Muertos[2]) vivos++;
-        if (3 <= TotalJugadores && IdImpostor != 3 && !Muertos[3]) vivos++;
-        if (4 <= TotalJugadores && IdImpostor != 4 && !Muertos[4]) vivos++;
-        
-        if (TotalJugadores > 1 && vivos === 0) {
-            if (MiId == 1) { redP2P.enviarDatos("impostor_win", "1"); terminarPartida(false); }
-        }
-    }
-});
-
-MiId = 1;
-cargarHub();
-
-
-function revisarVictoriaImpostor() {
-    if (MiId != 1) return;
-    let vivos = 0;
-    for(let i=1; i<=TotalJugadores; i++) if(!Muertos[i]) vivos++;
-    
-    if (vivos <= 2) {
-        redP2P.enviarDatos("imp_win", "1");
-        terminarPartida(false);
-    }
-}
-
-function terminarPartida(tripulantesGanan: boolean) {
-    if (PartidaTerminada) return;
-    PartidaTerminada = true;
-    
-    let colorFondo = tripulantesGanan ? 8 : 2;
-    scene.setBackgroundColor(colorFondo);
-    
-    let txt = tripulantesGanan ? "VICTORIA TRIPULANTES" : "VICTORIA IMPOSTOR";
-    let txt2 = tripulantesGanan ? "Tareas listas / Impostor fuera" : "Tripulacion eliminada";
-    
-    game.splash(txt, txt2);
-    
-    for(let i=1; i<=4; i++) Muertos[i] = false;
-    cargarHub();
-}
-
-function iniciarReunion(reporterId: number) {
-    for (let c of ListaCadaveres) { c.destroy(); }
-    ListaCadaveres = [];
-    if (PartidaTerminada) return;
-    EnVotacion = true;
-    YaVote = false;
-    VotosRecibidos = 0;
-    MisVotos = [0, 0, 0, 0, 0];
-    VotoSeleccionado = 0;
-    
-    JugadorLocal.setPosition(400, 150);
-    game.splash("!REUNION DE EMERGENCIA!", "Reportado por Jugador " + reporterId);
-    
-    if (UI_Votacion) { UI_Votacion.destroy(); UI_Votacion = null; }
-    UI_Votacion = sprites.create(image.create(160, 40), SpriteKind.Player);
-    UI_Votacion.setFlag(SpriteFlag.RelativeToCamera, true);
-    UI_Votacion.setPosition(80, 90);
-    UI_Votacion.z = 200;
-    
-    actualizarImagenVotacion();
-}
-
-function actualizarImagenVotacion() {
-    if (!UI_Votacion) return;
-    let img = image.create(160, 40);
-    img.fillRect(0, 0, 160, 40, 15);
-    img.fillRect(1, 1, 158, 38, 1);
-    
-    let txt = VotoSeleccionado == 0 ? "OMITIR" : "JUGADOR " + VotoSeleccionado;
-    let colorTexto = VotoSeleccionado == 0 ? 1 : VotoSeleccionado == 1 ? 2 : VotoSeleccionado == 2 ? 8 : VotoSeleccionado == 3 ? 7 : 5;
-    
-    img.printCenter("VOTAR A: " + txt, 5, colorTexto, image.font8);
-    img.printCenter("< IZQUIERDA | DERECHA >", 18, 1, image.font5);
-    img.printCenter("Presiona A para confirmar", 28, 1, image.font5);
-    img.printCenter("TIEMPO: " + TiempoVotacion, 34, 2, image.font5);
-    
-    if (YaVote) {
-        img.fillRect(0, 0, 160, 40, 15);
-        img.printCenter("ESPERANDO VOTOS...", 15, 1, image.font8);
-    }
-    
-    UI_Votacion.setImage(img);
-}
-
-controller.left.onEvent(ControllerButtonEvent.Pressed, function() {
-    if (EnVotacion && !YaVote) {
-        VotoSeleccionado--;
-        if (VotoSeleccionado < 0) VotoSeleccionado = TotalJugadores;
-        while(VotoSeleccionado > 0 && Muertos[VotoSeleccionado]) {
-            VotoSeleccionado--;
-            if (VotoSeleccionado < 0) VotoSeleccionado = TotalJugadores;
-        }
-        actualizarImagenVotacion();
-    }
-});
-
-controller.right.onEvent(ControllerButtonEvent.Pressed, function() {
-    if (EnVotacion && !YaVote) {
-        VotoSeleccionado++;
-        if (VotoSeleccionado > TotalJugadores) VotoSeleccionado = 0;
-        while(VotoSeleccionado > 0 && Muertos[VotoSeleccionado]) {
-            VotoSeleccionado++;
-            if (VotoSeleccionado > TotalJugadores) VotoSeleccionado = 0;
-        }
-        actualizarImagenVotacion();
-    }
-});
-
-function registrarVoto(votoId: number) {
-    VotosRecibidos++;
-    MisVotos[votoId]++;
-    
-    let vivos = 0;
-    for(let i=1; i<=TotalJugadores; i++) if(!Muertos[i]) vivos++;
-    
-    if (VotosRecibidos >= vivos) {
-        procesarResultadoVotacion();
-    }
-}
-
-function procesarResultadoVotacion() {
-    let maxVotos = 0;
-    let expulsado = -1;
-    let empate = false;
-    
-    for(let i=0; i<=4; i++) {
-        if (MisVotos[i] > maxVotos) {
-            maxVotos = MisVotos[i];
-            expulsado = i;
-            empate = false;
-        } else if (MisVotos[i] == maxVotos && maxVotos > 0) {
-            empate = true;
-        }
-    }
-    
-    if (UI_Votacion) { UI_Votacion.destroy(); UI_Votacion = null; }
-    EnVotacion = false;
-    
-    if (empate || expulsado == 0) {
-        game.splash("NADIE FUE EXPULSADO", "Empate o saltaron el voto");
-    } else {
-        game.splash("JUGADOR " + expulsado + " EXPULSADO", expulsado == IdImpostor ? "Era el Impostor" : "No era el Impostor");
-        
-        if (MiId == expulsado) {
-            JugadorLocal.setKind(SpriteKind.P2PCadaver);
-            JugadorLocal.setFlag(SpriteFlag.GhostThroughWalls, true);
-            JugadorLocal.sayText("FANTASMA", 5000);
-        } else if (expulsado == 1 && Rival1) { Rival1.setFlag(SpriteFlag.Invisible, false); Rival1.setImage(SPRITE_FANTASMA); }
-        else if (expulsado == 2 && Rival2) { Rival2.setFlag(SpriteFlag.Invisible, false); Rival2.setImage(SPRITE_FANTASMA); }
-        else if (expulsado == 3 && Rival3) { Rival3.setFlag(SpriteFlag.Invisible, false); Rival3.setImage(SPRITE_FANTASMA); }
-        else if (expulsado == 4 && Rival4) { Rival4.setFlag(SpriteFlag.Invisible, false); Rival4.setImage(SPRITE_FANTASMA); }
-        
-        Muertos[expulsado] = true;
-        
-        // Si expulsan a un tripulante (quizas AFK), reducimos el total de tareas para no bloquear la victoria
-        if (expulsado != IdImpostor) {
-            MaxTareasGlobales = Math.max(1, MaxTareasGlobales - 3);
-        }
-    }
-    
-    if (MiId == 1) {
-        if (expulsado == IdImpostor) {
-            redP2P.enviarDatos("task_win", "1"); terminarPartida(true);
-        } else {
-            revisarVictoriaImpostor();
-            if (!PartidaTerminada && TareasGlobales >= MaxTareasGlobales) {
-                redP2P.enviarDatos("task_win", "1"); terminarPartida(true);
-            }
-        }
-    }
-}
-
-
-game.onUpdateInterval(2000, function() {
-    if (!JugadorLocal) return;
-    
-    // Si la red o las colisiones rompieron el teletransporte, lo forzamos.
-    if (MapaActual == "hub") {
-        if (JugadorLocal.x > 250 || JugadorLocal.y > 250) {
-            JugadorLocal.setPosition(90 + MiId * 10, 90);
-            JugadorLocal.setFlag(SpriteFlag.GhostThroughWalls, false);
-        }
-    } else if (MapaActual == "skeld" && !EnVotacion) {
-        // Solo teletransportar si están exactamente atorados en las coordenadas exactas de aparición del lobby
-        // (90, 90) a (130, 90) para evitar arruinar la zona superior izquierda de Skeld (Motores)
-        if (JugadorLocal.y == 90 && JugadorLocal.x >= 90 && JugadorLocal.x <= 130) {
-            JugadorLocal.setPosition(400 + (MiId * 10 - 20), 150);
-        }
-    }
-});
-
-
-game.onUpdateInterval(1000, function() {
-    if (EnVotacion && TiempoVotacion > 0) {
-        TiempoVotacion--;
-        if (TiempoVotacion <= 0 && !YaVote) {
-            YaVote = true;
-            redP2P.enviarDatos("vote", "0");
-            registrarVoto(0);
-        }
-        actualizarImagenVotacion();
     }
 });
