@@ -308,6 +308,7 @@
     let clientes = {}; // { peerId: { id: 2/3/4, conn: c } }
     let proximoId = 2;
     let hostConn = null;
+    const inyectados = new Set(); // Para cancelar eco de MakeCode
 
     // Toast flotante
     function showToast(msg) {
@@ -347,6 +348,9 @@
       }
 
       const encoded = new TextEncoder().encode(accion + "|" + val);
+      const rawStr = accion + "|" + val;
+      inyectados.add(rawStr);
+      setTimeout(() => inyectados.delete(rawStr), 1000);
       const msgSimUint = {
         type: "messagepacket",
         channel: "amogus",
@@ -409,6 +413,7 @@
         } else if (d.data instanceof Uint8Array || Array.isArray(d.data)) {
           text = new TextDecoder().decode(new Uint8Array(d.data));
         }
+        if (inyectados.has(text)) return; // IGNORAR ECO!
         const sep = text.indexOf("|");
         if (sep >= 0) {
           let acc = text.substring(0, sep);
