@@ -164,6 +164,7 @@ let IdImpostor = 1;
 let SoyImpostor = false;
 let PartidaActiva = false;
 let PartidaTerminada = false;
+let MapaActual = "hub";
 let Muertos = [false, false, false, false, false];
 
 let JugadorLocal: Sprite = null;
@@ -192,6 +193,7 @@ let misTareasActivas: Image[] = [];
 
 // Inicio por defecto en Hub
 function cargarHub() {
+    MapaActual = "hub";
     PartidaActiva = false;
     PartidaTerminada = false;
     tiles.setCurrentTilemap(assets.tilemap`Level_0`);
@@ -226,6 +228,7 @@ function cargarHub() {
 cargarHub();
 
 function iniciarPartida() {
+    MapaActual = "skeld";
     PartidaActiva = true;
     PartidaTerminada = false;
     tiles.setCurrentTilemap(assets.tilemap`Level_2`);
@@ -689,3 +692,20 @@ function procesarResultadoVotacion() {
         }
     }
 }
+
+
+game.onUpdateInterval(2000, function() {
+    if (!JugadorLocal) return;
+    
+    // Si la red o las colisiones rompieron el teletransporte, lo forzamos.
+    if (MapaActual == "hub") {
+        if (JugadorLocal.x > 250 || JugadorLocal.y > 250) {
+            JugadorLocal.setPosition(90 + MiId * 10, 90);
+            JugadorLocal.setFlag(SpriteFlag.GhostThroughWalls, false);
+        }
+    } else if (MapaActual == "skeld" && !EnVotacion) {
+        if (JugadorLocal.x < 100 && JugadorLocal.y < 100) {
+            JugadorLocal.setPosition(400 + (MiId * 10 - 20), 150);
+        }
+    }
+});
