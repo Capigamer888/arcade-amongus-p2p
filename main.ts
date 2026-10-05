@@ -127,6 +127,27 @@ const SPRITE_MUERTO = img`
 . . 4 4 4 4 . . . 4 4 4 4 . . .
 . . . . . . . . . . . . . . . .
 `
+const SPRITE_CADAVER = img`
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . 2 2 2 2 . . . . . .
+. . . . 2 2 2 2 2 2 2 2 . . . .
+. . . 2 2 2 2 2 2 2 2 2 2 . . .
+. . . . 2 2 2 2 2 2 2 2 . . . .
+. . . . . . . 2 2 . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . .
+`
+
+let ListaCadaveres: Sprite[] = [];
+
 const SPRITE_FANTASMA = img`
 . . . . . 1 1 1 1 1 . . . . . .
 . . . . 1 1 1 1 1 1 1 . . . . .
@@ -422,6 +443,10 @@ redP2P.alRecibir(function (accion: string, valor: string) {
             redP2P.enviarDatos("task_win", "1");
             terminarPartida(true);
         }
+    } else if (accion == "report") {
+        iniciarReunion(parseInt(valor));
+    } else if (accion == "vote") {
+        registrarVoto(parseInt(valor));
     } else if (accion == "task_win") {
         terminarPartida(true);
     } else if (accion == "impostor_win") {
@@ -441,10 +466,11 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     if (PartidaActiva && !PartidaTerminada && !Muertos[MiId] && !EnVotacion) {
         let distCafeteria = Math.sqrt((JugadorLocal.x - 400)**2 + (JugadorLocal.y - 150)**2);
         let puedeReportar = (distCafeteria < 60);
-        if (Muertos[1] && Rival1 && Math.sqrt((JugadorLocal.x - Rival1.x)**2 + (JugadorLocal.y - Rival1.y)**2) < 40) puedeReportar = true;
-        if (Muertos[2] && Rival2 && Math.sqrt((JugadorLocal.x - Rival2.x)**2 + (JugadorLocal.y - Rival2.y)**2) < 40) puedeReportar = true;
-        if (Muertos[3] && Rival3 && Math.sqrt((JugadorLocal.x - Rival3.x)**2 + (JugadorLocal.y - Rival3.y)**2) < 40) puedeReportar = true;
-        if (Muertos[4] && Rival4 && Math.sqrt((JugadorLocal.x - Rival4.x)**2 + (JugadorLocal.y - Rival4.y)**2) < 40) puedeReportar = true;
+        for (let c of ListaCadaveres) {
+            if (Math.sqrt((JugadorLocal.x - c.x)**2 + (JugadorLocal.y - c.y)**2) < 40) {
+                puedeReportar = true;
+            }
+        }
         
         if (puedeReportar) {
             redP2P.enviarDatos("report", MiId.toString());
@@ -589,6 +615,8 @@ function terminarPartida(tripulantesGanan: boolean) {
 }
 
 function iniciarReunion(reporterId: number) {
+    for (let c of ListaCadaveres) { c.destroy(); }
+    ListaCadaveres = [];
     if (PartidaTerminada) return;
     EnVotacion = true;
     YaVote = false;
