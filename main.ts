@@ -185,8 +185,10 @@ let EnVotacion = false;
 let VotosRecibidos = 0;
 let MisVotos: number[] = [0, 0, 0, 0, 0];
 let VotoSeleccionado = 0;
+    TiempoVotacion = 30;
 let UI_Votacion: Sprite = null;
 let YaVote = false;
+let TiempoVotacion = 0;
 
 
 let misTareasActivas: Image[] = [];
@@ -604,6 +606,7 @@ function actualizarImagenVotacion() {
     img.printCenter("VOTAR A: " + txt, 5, colorTexto, image.font8);
     img.printCenter("< IZQUIERDA | DERECHA >", 18, 1, image.font5);
     img.printCenter("Presiona A para confirmar", 28, 1, image.font5);
+    img.printCenter("TIEMPO: " + TiempoVotacion, 34, 2, image.font5);
     
     if (YaVote) {
         img.fillRect(0, 0, 160, 40, 15);
@@ -682,6 +685,11 @@ function procesarResultadoVotacion() {
         else if (expulsado == 4 && Rival4) { Rival4.setFlag(SpriteFlag.Invisible, false); Rival4.setImage(SPRITE_FANTASMA); }
         
         Muertos[expulsado] = true;
+        
+        // Si expulsan a un tripulante (quizas AFK), reducimos el total de tareas para no bloquear la victoria
+        if (expulsado != IdImpostor) {
+            MaxTareasGlobales = Math.max(1, MaxTareasGlobales - 3);
+        }
     }
     
     if (MiId == 1) {
@@ -689,6 +697,9 @@ function procesarResultadoVotacion() {
             redP2P.enviarDatos("task_win", "1"); terminarPartida(true);
         } else {
             revisarVictoriaImpostor();
+            if (!PartidaTerminada && TareasGlobales >= MaxTareasGlobales) {
+                redP2P.enviarDatos("task_win", "1"); terminarPartida(true);
+            }
         }
     }
 }
@@ -709,5 +720,18 @@ game.onUpdateInterval(2000, function() {
         if (JugadorLocal.y == 90 && JugadorLocal.x >= 90 && JugadorLocal.x <= 130) {
             JugadorLocal.setPosition(400 + (MiId * 10 - 20), 150);
         }
+    }
+});
+
+
+game.onUpdateInterval(1000, function() {
+    if (EnVotacion && TiempoVotacion > 0) {
+        TiempoVotacion--;
+        if (TiempoVotacion <= 0 && !YaVote) {
+            YaVote = true;
+            redP2P.enviarDatos("vote", "0");
+            registrarVoto(0);
+        }
+        actualizarImagenVotacion();
     }
 });
