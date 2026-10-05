@@ -175,9 +175,18 @@ let Rival4: Sprite = null;
 let KillBtnUI: Sprite = null;
 let TaskBtnUI: Sprite = null;
 let BarraTareasUI: Sprite = null;
-let tareasCompletadas = 0;
+let tareasCompletadas = 0; TareasGlobales = 0;
+let TareasGlobales = 0;
+let MaxTareasGlobales = 3;
 let totalTareas = 3;
 let cooldownKill = 0;
+let EnVotacion = false;
+let VotosRecibidos = 0;
+let MisVotos: number[] = [0, 0, 0, 0, 0];
+let VotoSeleccionado = 0;
+let UI_Votacion: Sprite = null;
+let YaVote = false;
+
 
 let misTareasActivas: Image[] = [];
 
@@ -253,7 +262,7 @@ function actualizarBarraTareas() {
     if (!BarraTareasUI) return;
     let imgBarra = image.create(100, 8);
     imgBarra.fillRect(0, 0, 100, 8, 15); // Borde negro
-    let fillW = Math.round((tareasCompletadas / totalTareas) * 98);
+    let fillW = Math.round((TareasGlobales / MaxTareasGlobales) * 98);
     if (fillW > 0) imgBarra.fillRect(1, 1, fillW, 6, 7); // Relleno verde
     BarraTareasUI.setImage(imgBarra);
 }
@@ -381,6 +390,13 @@ redP2P.alRecibir(function (accion: string, valor: string) {
         }
     } else if (accion == "kill") {
         aplicarMuerte(parseInt(valor));
+    } else if (accion == "task_sync") {
+        TareasGlobales++;
+        actualizarBarraTareas();
+        if (MiId == 1 && TareasGlobales >= MaxTareasGlobales) {
+            redP2P.enviarDatos("task_win", "1");
+            terminarPartida(true);
+        }
     } else if (accion == "task_win") {
         PartidaTerminada = true;
         game.over(SoyImpostor ? false : true, effects.confetti);
@@ -391,6 +407,30 @@ redP2P.alRecibir(function (accion: string, valor: string) {
 });
 
 controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
+    if (EnVotacion && !YaVote) {
+        YaVote = true;
+        actualizarImagenVotacion();
+        redP2P.enviarDatos("vote", VotoSeleccionado.toString());
+        registrarVoto(VotoSeleccionado);
+        return;
+    }
+    
+    if (PartidaActiva && !PartidaTerminada && !Muertos[MiId] && !EnVotacion) {
+        let distCafeteria = Math.sqrt((JugadorLocal.x - 400)**2 + (JugadorLocal.y - 150)**2);
+        let puedeReportar = (distCafeteria < 60);
+        if (Muertos[1] && Rival1 && Math.sqrt((JugadorLocal.x - Rival1.x)**2 + (JugadorLocal.y - Rival1.y)**2) < 40) puedeReportar = true;
+        if (Muertos[2] && Rival2 && Math.sqrt((JugadorLocal.x - Rival2.x)**2 + (JugadorLocal.y - Rival2.y)**2) < 40) puedeReportar = true;
+        if (Muertos[3] && Rival3 && Math.sqrt((JugadorLocal.x - Rival3.x)**2 + (JugadorLocal.y - Rival3.y)**2) < 40) puedeReportar = true;
+        if (Muertos[4] && Rival4 && Math.sqrt((JugadorLocal.x - Rival4.x)**2 + (JugadorLocal.y - Rival4.y)**2) < 40) puedeReportar = true;
+        
+        if (puedeReportar) {
+            redP2P.enviarDatos("report", MiId.toString());
+            iniciarReunion(MiId);
+            return;
+        }
+    }
+    
+    if (EnVotacion) return;
     if (!PartidaActiva && MiId == 1) {
         redP2P.enviarDatos("req_start", "1");
         // Fallback para probar offline dentro del editor de MakeCode
@@ -500,3 +540,152 @@ game.onUpdate(function() {
 
 MiId = 1;
 cargarHub();
+
+
+function revisarVictoriaImpostor() {
+    if (MiId != 1) return;
+    let vivos = 0;
+    for(let i=1; i<=TotalJugadores; i++) if(!Muertos[i]) vivos++;
+    
+    if (vivos <= 2) {
+        redP2P.enviarDatos("imp_win", "1");
+        terminarPartida(false);
+    }
+}
+
+function terminarPartida(tripulantesGanan: boolean) {
+    if (PartidaTerminada) return;
+    PartidaTerminada = true;
+    
+    let colorFondo = tripulantesGanan ? 8 : 2;
+    scene.setBackgroundColor(colorFondo);
+    
+    let txt = tripulantesGanan ? "VICTORIA TRIPULANTES" : "VICTORIA IMPOSTOR";
+    let txt2 = tripulantesGanan ? "Tareas listas / Impostor fuera" : "Tripulacion eliminada";
+    
+    game.splash(txt, txt2);
+    
+    for(let i=1; i<=4; i++) Muertos[i] = false;
+    cargarHub();
+}
+
+function iniciarReunion(reporterId: number) {
+    if (PartidaTerminada) return;
+    EnVotacion = true;
+    YaVote = false;
+    VotosRecibidos = 0;
+    MisVotos = [0, 0, 0, 0, 0];
+    VotoSeleccionado = 0;
+    
+    JugadorLocal.setPosition(400, 150);
+    game.splash("!REUNION DE EMERGENCIA!", "Reportado por Jugador " + reporterId);
+    
+    if (UI_Votacion) { UI_Votacion.destroy(); UI_Votacion = null; }
+    UI_Votacion = sprites.create(image.create(160, 40), SpriteKind.Player);
+    UI_Votacion.setFlag(SpriteFlag.RelativeToCamera, true);
+    UI_Votacion.setPosition(80, 90);
+    UI_Votacion.z = 200;
+    
+    actualizarImagenVotacion();
+}
+
+function actualizarImagenVotacion() {
+    if (!UI_Votacion) return;
+    let img = image.create(160, 40);
+    img.fillRect(0, 0, 160, 40, 15);
+    img.fillRect(1, 1, 158, 38, 1);
+    
+    let txt = VotoSeleccionado == 0 ? "OMITIR" : "JUGADOR " + VotoSeleccionado;
+    let colorTexto = VotoSeleccionado == 0 ? 1 : VotoSeleccionado == 1 ? 2 : VotoSeleccionado == 2 ? 8 : VotoSeleccionado == 3 ? 7 : 5;
+    
+    img.printCenter("VOTAR A: " + txt, 5, colorTexto, image.font8);
+    img.printCenter("< IZQUIERDA | DERECHA >", 18, 1, image.font5);
+    img.printCenter("Presiona A para confirmar", 28, 1, image.font5);
+    
+    if (YaVote) {
+        img.fillRect(0, 0, 160, 40, 15);
+        img.printCenter("ESPERANDO VOTOS...", 15, 1, image.font8);
+    }
+    
+    UI_Votacion.setImage(img);
+}
+
+controller.left.onEvent(ControllerButtonEvent.Pressed, function() {
+    if (EnVotacion && !YaVote) {
+        VotoSeleccionado--;
+        if (VotoSeleccionado < 0) VotoSeleccionado = TotalJugadores;
+        while(VotoSeleccionado > 0 && Muertos[VotoSeleccionado]) {
+            VotoSeleccionado--;
+            if (VotoSeleccionado < 0) VotoSeleccionado = TotalJugadores;
+        }
+        actualizarImagenVotacion();
+    }
+});
+
+controller.right.onEvent(ControllerButtonEvent.Pressed, function() {
+    if (EnVotacion && !YaVote) {
+        VotoSeleccionado++;
+        if (VotoSeleccionado > TotalJugadores) VotoSeleccionado = 0;
+        while(VotoSeleccionado > 0 && Muertos[VotoSeleccionado]) {
+            VotoSeleccionado++;
+            if (VotoSeleccionado > TotalJugadores) VotoSeleccionado = 0;
+        }
+        actualizarImagenVotacion();
+    }
+});
+
+function registrarVoto(votoId: number) {
+    VotosRecibidos++;
+    MisVotos[votoId]++;
+    
+    let vivos = 0;
+    for(let i=1; i<=TotalJugadores; i++) if(!Muertos[i]) vivos++;
+    
+    if (VotosRecibidos >= vivos) {
+        procesarResultadoVotacion();
+    }
+}
+
+function procesarResultadoVotacion() {
+    let maxVotos = 0;
+    let expulsado = -1;
+    let empate = false;
+    
+    for(let i=0; i<=4; i++) {
+        if (MisVotos[i] > maxVotos) {
+            maxVotos = MisVotos[i];
+            expulsado = i;
+            empate = false;
+        } else if (MisVotos[i] == maxVotos && maxVotos > 0) {
+            empate = true;
+        }
+    }
+    
+    if (UI_Votacion) { UI_Votacion.destroy(); UI_Votacion = null; }
+    EnVotacion = false;
+    
+    if (empate || expulsado == 0) {
+        game.splash("NADIE FUE EXPULSADO", "Empate o saltaron el voto");
+    } else {
+        game.splash("JUGADOR " + expulsado + " EXPULSADO", expulsado == IdImpostor ? "Era el Impostor" : "No era el Impostor");
+        
+        if (MiId == expulsado) {
+            JugadorLocal.setKind(SpriteKind.P2PCadaver);
+            JugadorLocal.setFlag(SpriteFlag.GhostThroughWalls, true);
+            JugadorLocal.sayText("FANTASMA", 5000);
+        } else if (expulsado == 1 && Rival1) { Rival1.setFlag(SpriteFlag.Invisible, false); Rival1.setImage(SPRITE_FANTASMA); }
+        else if (expulsado == 2 && Rival2) { Rival2.setFlag(SpriteFlag.Invisible, false); Rival2.setImage(SPRITE_FANTASMA); }
+        else if (expulsado == 3 && Rival3) { Rival3.setFlag(SpriteFlag.Invisible, false); Rival3.setImage(SPRITE_FANTASMA); }
+        else if (expulsado == 4 && Rival4) { Rival4.setFlag(SpriteFlag.Invisible, false); Rival4.setImage(SPRITE_FANTASMA); }
+        
+        Muertos[expulsado] = true;
+    }
+    
+    if (MiId == 1) {
+        if (expulsado == IdImpostor) {
+            redP2P.enviarDatos("task_win", "1"); terminarPartida(true);
+        } else {
+            revisarVictoriaImpostor();
+        }
+    }
+}
