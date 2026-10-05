@@ -413,19 +413,7 @@
         if (sep >= 0) {
           let acc = text.substring(0, sep);
           let val = text.substring(sep + 1);
-          if (acc === "pos") {
-             let mkId = parseInt(val.split(",")[0]);
-             if (mkId !== miId) {
-                if (!window.lastSync || Date.now() - window.lastSync > 2000) {
-                    window.lastSync = Date.now();
-                    enviarAlJuego("set_player", String(miId));
-                }
-             }
 
-
-
-
-          }
           procesarSalidaJuego(acc, val);
         }
         return;
@@ -571,7 +559,7 @@
               const payload = {
                 canal: "amogus_in",
                 accion: "pos",
-                valor: idAsignado + "," + data.valor
+                valor: data.valor
               };
               enviarAlJuego(payload);
               broadcastAClientes(payload, c.peer);
@@ -654,6 +642,8 @@
             
             // Asignar inmediatamente el personaje correspondiente en MakeCode
             enviarAlJuego("set_player", String(miId));
+              setTimeout(() => enviarAlJuego("set_player", String(miId)), 3000);
+              setTimeout(() => enviarAlJuego("set_player", String(miId)), 6000);
 
             const colores = ["", "Rojo", "Azul", "Verde", "Amarillo"];
             showToast(`¡Asignado como Jugador ${miId} (${colores[miId]})!`);
