@@ -299,7 +299,6 @@
     const squadCount = document.getElementById("squadCount");
     const badgePlayers = document.getElementById("badgePlayers");
     const squadList = document.getElementById("squadList");
-    const clickOverlay = document.getElementById("clickOverlay");
 
     
 
@@ -524,6 +523,12 @@
 
       peer = new Peer();
 
+      peer.on("error", (err) => {
+        console.error("PeerJS Host error:", err);
+        showToast("Error P2P: " + (err.type || err.message));
+        statusText.innerText = "Error P2P: " + (err.type || err.message);
+      });
+
       peer.on("open", (id) => {
         salaId = id;
         displayRoomCode.innerText = id;
@@ -631,8 +636,21 @@
       esHost = false;
       peer = new Peer();
 
+      peer.on("error", (err) => {
+        console.error("PeerJS Client error:", err);
+        let errorMsg = err.type === "peer-unavailable" ? "Código de sala no encontrado o sala cerrada." : (err.type || err.message);
+        showToast("Error: " + errorMsg);
+        statusText.innerText = "Error: " + errorMsg;
+      });
+
       peer.on("open", () => {
         hostConn = peer.connect(codigo);
+
+        hostConn.on("error", (err) => {
+          console.error("Host connection error:", err);
+          showToast("Error al conectar con la sala");
+          statusText.innerText = "Error al conectar con la sala.";
+        });
 
         hostConn.on("open", () => {
           statusText.innerText = "¡Conectado! Esperando a que el Host inicie la partida...";
@@ -685,8 +703,6 @@
       _estimatedTotal = 50;
       var lo = document.getElementById("loadingOverlay");
       if (lo) lo.style.display = "flex";
-      var co = document.getElementById("clickOverlay");
-      if (co) co.style.display = "none";
       updateLoadDisplay("Reiniciando...");
 
       document.getElementById("gameFrame").src = "https://arcade.makecode.com/---run?id=" + id;

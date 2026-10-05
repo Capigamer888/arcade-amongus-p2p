@@ -240,6 +240,7 @@ function distCoords(x1: number, y1: number, x2: number, y2: number): number {
 }
 
 function dist(s1: Sprite, s2: Sprite): number {
+    if (!s1 || !s2) return 99999;
     return distCoords(s1.x, s1.y, s2.x, s2.y);
 }
 
@@ -299,6 +300,7 @@ function resetearRivalHub(r: Sprite, id: number) {
 }
 
 function cargarHub() {
+    for (let i = 1; i <= 4; i++) Muertos[i] = false;
     MapaActual = "hub";
     PartidaActiva = false;
     PartidaTerminada = false;
@@ -362,6 +364,7 @@ function prepararRivalPartida(r: Sprite, id: number): Sprite {
 }
 
 function iniciarPartida() {
+    for (let i = 1; i <= 4; i++) Muertos[i] = false;
     MapaActual = "skeld";
     PartidaActiva = true;
     PartidaTerminada = false;
@@ -482,7 +485,7 @@ function actualizarBarraTareas() {
     imgBarra.fillRect(0, 0, 110, 11, 15);
     imgBarra.fillRect(1, 1, 108, 9, 11);
     
-    let fillW = Math.round((TareasGlobales / Math.max(1, MaxTareasGlobales)) * 108);
+    let fillW = Math.min(108, Math.max(0, Math.round((TareasGlobales / Math.max(1, MaxTareasGlobales)) * 108)));
     if (fillW > 0) {
         imgBarra.fillRect(1, 1, fillW, 9, 7);
     }
@@ -726,7 +729,7 @@ function iniciarReunion(reporterId: number) {
     ListaCadaveres = [];
     
     EnVotacion = true;
-    YaVote = false;
+    YaVote = Muertos[MiId] ? true : false;
     VotosRecibidos = 0;
     MisVotos = [0, 0, 0, 0, 0];
     VotoSeleccionado = 0;
@@ -734,6 +737,13 @@ function iniciarReunion(reporterId: number) {
     
     JugadorLocal.setPosition(400, 150);
     controller.moveSprite(JugadorLocal, 0, 0); // Congelar movimiento durante la reunión
+    
+    // Reunir rivales en la mesa de emergencia visualmente
+    if (Rival1) { Rival1.setPosition(380, 150); }
+    if (Rival2) { Rival2.setPosition(420, 150); }
+    if (Rival3) { Rival3.setPosition(400, 130); }
+    if (Rival4) { Rival4.setPosition(400, 170); }
+
     game.splash("!REUNION DE EMERGENCIA!", "Reportado por Jugador " + reporterId);
     
     if (UI_Votacion) { UI_Votacion.destroy(); UI_Votacion = null; }
@@ -751,23 +761,28 @@ function actualizarImagenVotacion() {
     imgV.fillRect(0, 0, 160, 40, 15);
     imgV.fillRect(1, 1, 158, 38, 1);
     
-    let txtV = VotoSeleccionado == 0 ? "OMITIR" : "JUGADOR " + VotoSeleccionado;
-    let colorTexto = VotoSeleccionado == 0 ? 1 : VotoSeleccionado == 1 ? 2 : VotoSeleccionado == 2 ? 8 : VotoSeleccionado == 3 ? 7 : 5;
-    
-    imgV.printCenter("VOTAR A: " + txtV, 2, colorTexto, image.font8);
-    imgV.printCenter("< IZQ | DER >  A=Confirmar", 14, 1, image.font5);
-    imgV.printCenter("TIEMPO: " + TiempoVotacion + "s", 25, 2, image.font8);
-    
-    if (YaVote) {
+    if (Muertos[MiId]) {
+        imgV.fillRect(0, 0, 160, 40, 15);
+        imgV.printCenter("FANTASMA (NO VOTAS)", 8, 1, image.font8);
+        imgV.printCenter("TIEMPO: " + TiempoVotacion + "s", 24, 2, image.font5);
+    } else if (YaVote) {
         imgV.fillRect(0, 0, 160, 40, 15);
         imgV.printCenter("ESPERANDO VOTOS...", 10, 1, image.font8);
         imgV.printCenter("TIEMPO: " + TiempoVotacion + "s", 25, 2, image.font5);
+    } else {
+        let txtV = VotoSeleccionado == 0 ? "OMITIR" : "JUGADOR " + VotoSeleccionado;
+        let colorTexto = VotoSeleccionado == 0 ? 1 : VotoSeleccionado == 1 ? 2 : VotoSeleccionado == 2 ? 8 : VotoSeleccionado == 3 ? 7 : 5;
+        
+        imgV.printCenter("VOTAR A: " + txtV, 2, colorTexto, image.font8);
+        imgV.printCenter("< IZQ | DER >  A=Confirmar", 14, 1, image.font5);
+        imgV.printCenter("TIEMPO: " + TiempoVotacion + "s", 25, 2, image.font8);
     }
     
     UI_Votacion.setImage(imgV);
 }
 
 function registrarVoto(votoId: number) {
+    if (votoId < 0 || votoId > 4) return;
     VotosRecibidos++;
     MisVotos[votoId]++;
     
@@ -780,6 +795,8 @@ function registrarVoto(votoId: number) {
 }
 
 function procesarResultadoVotacion() {
+    if (!EnVotacion) return;
+    EnVotacion = false;
     let maxVotos = 0;
     let expulsado = -1;
     let empate = false;
@@ -795,7 +812,6 @@ function procesarResultadoVotacion() {
     }
     
     if (UI_Votacion) { UI_Votacion.destroy(); UI_Votacion = null; }
-    EnVotacion = false;
     
     // Restaurar movimiento
     if (Muertos[MiId]) {
@@ -825,10 +841,18 @@ function procesarResultadoVotacion() {
             if (Rival2 && Muertos[2]) Rival2.setFlag(SpriteFlag.Invisible, false);
             if (Rival3 && Muertos[3]) Rival3.setFlag(SpriteFlag.Invisible, false);
             if (Rival4 && Muertos[4]) Rival4.setFlag(SpriteFlag.Invisible, false);
-        } else if (expulsado == 1 && Rival1) { Rival1.setFlag(SpriteFlag.Invisible, true); Rival1.setImage(SPRITE_FANTASMA); }
-        else if (expulsado == 2 && Rival2) { Rival2.setFlag(SpriteFlag.Invisible, true); Rival2.setImage(SPRITE_FANTASMA); }
-        else if (expulsado == 3 && Rival3) { Rival3.setFlag(SpriteFlag.Invisible, true); Rival3.setImage(SPRITE_FANTASMA); }
-        else if (expulsado == 4 && Rival4) { Rival4.setFlag(SpriteFlag.Invisible, true); Rival4.setImage(SPRITE_FANTASMA); }
+        } else {
+            let rivalExp = expulsado == 1 ? Rival1 : (expulsado == 2 ? Rival2 : (expulsado == 3 ? Rival3 : Rival4));
+            if (rivalExp) {
+                rivalExp.setImage(SPRITE_FANTASMA);
+                rivalExp.setKind(SpriteKind.P2PCadaver);
+                if (!Muertos[MiId]) {
+                    rivalExp.setFlag(SpriteFlag.Invisible, true);
+                } else {
+                    rivalExp.setFlag(SpriteFlag.Invisible, false);
+                }
+            }
+        }
         
         Muertos[expulsado] = true;
         
@@ -882,6 +906,13 @@ redP2P.alRecibir(function (accion: string, valor: string) {
                 game.splash("IMPOSTOR DESCONECTADO", "Tripulantes ganan");
                 terminarPartida(true);
             } else if (PartidaActiva && !PartidaTerminada) {
+                MaxTareasGlobales = Math.max(TareasGlobales, MaxTareasGlobales - 3);
+                actualizarBarraTareas();
+                if (TareasGlobales >= MaxTareasGlobales && MaxTareasGlobales > 0) {
+                    redP2P.enviarDatos("task_win", "1");
+                    terminarPartida(true);
+                    return;
+                }
                 revisarVictoriaImpostor();
             }
         }
@@ -927,14 +958,15 @@ controller.A.onEvent(ControllerButtonEvent.Pressed, function () {
     if (game.runtime() < debounceBotonA) return;
 
     // 1. Votación
-    if (EnVotacion && !YaVote) {
-        YaVote = true;
-        actualizarImagenVotacion();
-        redP2P.enviarDatos("vote", VotoSeleccionado.toString());
-        registrarVoto(VotoSeleccionado);
+    if (EnVotacion) {
+        if (!YaVote && !Muertos[MiId]) {
+            YaVote = true;
+            actualizarImagenVotacion();
+            redP2P.enviarDatos("vote", VotoSeleccionado.toString());
+            registrarVoto(VotoSeleccionado);
+        }
         return;
     }
-    if (EnVotacion) return;
     
     // 2. Reportar cuerpo o emergencia
     if (PartidaActiva && !PartidaTerminada && !Muertos[MiId]) {
@@ -1060,7 +1092,7 @@ controller.B.onEvent(ControllerButtonEvent.Pressed, function () {
 // ============================================================
 
 controller.left.onEvent(ControllerButtonEvent.Pressed, function() {
-    if (EnVotacion && !YaVote) {
+    if (EnVotacion && !YaVote && !Muertos[MiId]) {
         VotoSeleccionado--;
         if (VotoSeleccionado < 0) VotoSeleccionado = TotalJugadores;
         while (VotoSeleccionado > 0 && Muertos[VotoSeleccionado]) {
@@ -1072,7 +1104,7 @@ controller.left.onEvent(ControllerButtonEvent.Pressed, function() {
 });
 
 controller.right.onEvent(ControllerButtonEvent.Pressed, function() {
-    if (EnVotacion && !YaVote) {
+    if (EnVotacion && !YaVote && !Muertos[MiId]) {
         VotoSeleccionado++;
         if (VotoSeleccionado > TotalJugadores) VotoSeleccionado = 0;
         while (VotoSeleccionado > 0 && Muertos[VotoSeleccionado]) {
@@ -1099,7 +1131,7 @@ game.onUpdateInterval(1000, function() {
     if (EnVotacion && TiempoVotacion > -5) {
         TiempoVotacion--;
         actualizarImagenVotacion();
-        if (TiempoVotacion <= 0 && !YaVote) {
+        if (TiempoVotacion <= 0 && !YaVote && !Muertos[MiId]) {
             YaVote = true;
             redP2P.enviarDatos("vote", "0");
             registrarVoto(0);
@@ -1116,25 +1148,30 @@ game.onUpdate(function() {
 
     // Actualizar botón de matar para Impostor
     if (SoyImpostor && KillBtnUI) {
-        let puedeMatar = false;
-        let killRange = 35;
-        if (game.runtime() >= cooldownKill) {
-            if (Rival1 && !Muertos[1] && dist(JugadorLocal, Rival1) <= killRange) puedeMatar = true;
-            if (Rival2 && !Muertos[2] && dist(JugadorLocal, Rival2) <= killRange) puedeMatar = true;
-            if (Rival3 && !Muertos[3] && dist(JugadorLocal, Rival3) <= killRange) puedeMatar = true;
-            if (Rival4 && !Muertos[4] && dist(JugadorLocal, Rival4) <= killRange) puedeMatar = true;
+        if (Muertos[MiId]) {
+            KillBtnUI.setFlag(SpriteFlag.Invisible, true);
         } else {
-            let cercaDeAlguien = false;
-            if (Rival1 && !Muertos[1] && dist(JugadorLocal, Rival1) <= killRange) cercaDeAlguien = true;
-            if (Rival2 && !Muertos[2] && dist(JugadorLocal, Rival2) <= killRange) cercaDeAlguien = true;
-            if (Rival3 && !Muertos[3] && dist(JugadorLocal, Rival3) <= killRange) cercaDeAlguien = true;
-            if (Rival4 && !Muertos[4] && dist(JugadorLocal, Rival4) <= killRange) cercaDeAlguien = true;
-            if (cercaDeAlguien) {
-                let segs = Math.ceil((cooldownKill - game.runtime()) / 1000);
-                JugadorLocal.sayText("Kill en " + segs + "s", 200);
+            KillBtnUI.setFlag(SpriteFlag.Invisible, false);
+            let puedeMatar = false;
+            let killRange = 35;
+            if (game.runtime() >= cooldownKill) {
+                if (Rival1 && !Muertos[1] && dist(JugadorLocal, Rival1) <= killRange) puedeMatar = true;
+                if (Rival2 && !Muertos[2] && dist(JugadorLocal, Rival2) <= killRange) puedeMatar = true;
+                if (Rival3 && !Muertos[3] && dist(JugadorLocal, Rival3) <= killRange) puedeMatar = true;
+                if (Rival4 && !Muertos[4] && dist(JugadorLocal, Rival4) <= killRange) puedeMatar = true;
+            } else {
+                let cercaDeAlguien = false;
+                if (Rival1 && !Muertos[1] && dist(JugadorLocal, Rival1) <= killRange) cercaDeAlguien = true;
+                if (Rival2 && !Muertos[2] && dist(JugadorLocal, Rival2) <= killRange) cercaDeAlguien = true;
+                if (Rival3 && !Muertos[3] && dist(JugadorLocal, Rival3) <= killRange) cercaDeAlguien = true;
+                if (Rival4 && !Muertos[4] && dist(JugadorLocal, Rival4) <= killRange) cercaDeAlguien = true;
+                if (cercaDeAlguien) {
+                    let segs = Math.ceil((cooldownKill - game.runtime()) / 1000);
+                    JugadorLocal.sayText("Kill en " + segs + "s", 200);
+                }
             }
+            KillBtnUI.y = puedeMatar ? 98 + Math.sin(game.runtime()/100)*2 : 125;
         }
-        KillBtnUI.y = puedeMatar ? 98 + Math.sin(game.runtime()/100)*2 : 125;
     }
 
     // Actualizar guía de tareas y botón para Tripulante
