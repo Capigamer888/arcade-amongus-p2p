@@ -436,13 +436,8 @@
         return;
       }
       if (esHost) {
-        if (accion === "pos") {
-          const payload = { canal: "amogus_in", accion: "pos", valor: valor };
-          broadcastAClientes(payload);
-        } else if (accion === "kill") {
-          const payload = { canal: "amogus_in", accion: "kill", valor: valor };
-          broadcastAClientes(payload);
-        }
+        const payload = { canal: "amogus_in", accion: accion, valor: valor };
+        broadcastAClientes(payload);
       } else {
         if (hostConn && hostConn.open) {
           hostConn.send({ canal: "amogus_out", accion: accion, valor: valor });
@@ -560,25 +555,15 @@
           });
 
           c.on("data", (data) => {
-            if (data.accion === "pos") {
-              const payload = {
-                canal: "amogus_in",
-                accion: "pos",
-                valor: data.valor
-              };
-              enviarAlJuego(payload);
-              broadcastAClientes(payload, c.peer);
-            } else if (data.accion === "kill") {
-              const payload = {
-                canal: "amogus_in",
-                accion: "kill",
-                valor: data.valor
-              };
-              enviarAlJuego(payload);
-              broadcastAClientes(payload, c.peer);
-            }
+            const payload = {
+              canal: "amogus_in",
+              accion: data.accion,
+              valor: data.valor
+            };
+            enviarAlJuego(payload);
+            broadcastAClientes(payload, c.peer);
           });
-
+          
           c.on("close", () => {
             delete clientes[c.peer];
             actualizarUISquad();
