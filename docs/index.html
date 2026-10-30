@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Among Us Arcade - The Skeld (P2P 4 Jugadores)</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=1.0.5">
   <script src="peerjs.min.js"></script>
   <script>
     // Suprimir errores no capturados por bloqueo de rastreo en Edge / ServiceWorker de MakeCode
@@ -95,10 +95,10 @@
     <!-- ÁREA CENTRAL: PANTALLA DE JUEGO Y BARRA DOCK ESTILO KRUNKER -->
     <main class="center-viewport">
       
-      <!-- Marco del juego -->
-      <div class="game-frame-wrapper" id="frameWrapper" onmousedown="document.getElementById('focusPrompt').style.display='none';">
+      <!-- Marco del juego (Aspect Ratio 17:20 nativo de MakeCode Arcade para mostrar D-Pad y botones táctiles A/B) -->
+      <div class="game-frame-wrapper" id="frameWrapper" style="aspect-ratio: 17 / 20; max-width: 520px;" onmousedown="document.getElementById('focusPrompt').style.display='none';" ontouchstart="document.getElementById('focusPrompt').style.display='none';">
         <div id="focusPrompt" style="position:absolute; top:12px; left:50%; transform:translateX(-50%); background:rgba(239, 68, 68, 0.9); color:white; padding:6px 16px; border-radius:12px; font-size:13px; font-weight:bold; z-index:10; pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,0.5); border: 2px solid #f87171;">
-          ¡HAZ CLIC AQUÍ DENTRO PARA ACTIVAR LOS CONTROLES!
+          ¡TOCA O HAZ CLIC AQUÍ PARA JUGAR!
         </div>
         
         
@@ -191,7 +191,7 @@
           }, 12000);
         </script>
 
-        <iframe id="gameFrame" onload="onIframeLoaded()" src="https://arcade.makecode.com/---run?id=S32767-64729-04468-08304"></iframe>
+        <iframe id="gameFrame" onload="onIframeLoaded()" src="https://arcade.makecode.com/---run?id=S92639-68073-48964-41107&nofooter=1" allowfullscreen="allowfullscreen" sandbox="allow-popups allow-forms allow-scripts allow-same-origin"></iframe>
       </div>
 
       <!-- BARRA DOCK INFERIOR (Krunker Style) -->
@@ -226,7 +226,7 @@
       <!-- Selector de URL de juego (Opcional) -->
       <span class="url-bar-toggle" onclick="toggleUrlBar()">Configuración avanzada de URL Arcade</span>
       <div class="url-bar" id="urlBar">
-        <input type="text" id="inputGameUrl" class="k-input" value="https://arcade.makecode.com/---run?id=S32767-64729-04468-08304" style="font-size:12px;">
+        <input type="text" id="inputGameUrl" class="k-input" value="https://arcade.makecode.com/---run?id=S92639-68073-48964-41107&nofooter=1" style="font-size:12px;">
         <button class="k-btn" style="padding:6px 12px; font-size:12px; border-color:#64748b;" onclick="cambiarJuego()">Cargar</button>
       </div>
 
@@ -705,9 +705,19 @@
       if (lo) lo.style.display = "flex";
       updateLoadDisplay("Reiniciando...");
 
-      document.getElementById("gameFrame").src = "https://arcade.makecode.com/---run?id=" + id;
+      document.getElementById("gameFrame").src = "https://arcade.makecode.com/---run?id=" + id + "&nofooter=1";
       showToast("Cargando juego: " + id);
     }
+
+    // Ocultar aviso de enfoque automáticamente cuando el usuario toca o hace clic dentro del iframe
+    window.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (document.activeElement === iframe) {
+          const fp = document.getElementById("focusPrompt");
+          if (fp) fp.style.display = "none";
+        }
+      }, 50);
+    });
   </script>
 </body>
 </html>

@@ -227,8 +227,8 @@ body {
 .game-frame-wrapper {
   position: relative;
   width: 100%;
-  max-width: 720px;
-  aspect-ratio: 4 / 3;
+  max-width: 520px;
+  aspect-ratio: 17 / 20;
   background: #000;
   border-radius: 12px;
   border: 2px solid rgba(255, 255, 255, 0.15);
