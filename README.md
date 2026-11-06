@@ -53,7 +53,7 @@ Si deseas probar el mapa, explorar las mecánicas tú solo, o editar y modificar
 4. Se abrirá el proyecto completo con el editor de bloques o TypeScript.
 5. En el simulador de MakeCode (modo Lobby), presiona la tecla **Espacio** o el botón virtual **(A)**.
 6. Al cabo de medio segundo sin otros jugadores en red, el juego iniciará automáticamente en **Modo Práctica Solo** como Impostor para que explores libremente:
-   * Probar el botón de emergencia en la mesa de Cafetería `(400, 150)`.
+   * Probar el botón de emergencia en la mesa de Cafetería `(1408, 896)`.
    * Probar las ubicaciones de tareas por todo el mapa The Skeld.
    * Probar la velocidad de movimiento, colisiones de paredes y cooldowns.
 

@@ -1,6 +1,6 @@
 {
     "name": "arcade-amongus-p2p",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "description": "Among Us P2P Multiplayer in MakeCode Arcade",
     "dependencies": {
         "device": "*"
@@ -9,7 +9,9 @@
         "main.ts",
         "README.md",
         "images.g.jres",
-        "tilemap.g.jres"
+        "tilemap.g.jres",
+        "tilemap.g.ts",
+        "images.g.ts"
     ],
     "testFiles": [],
     "public": true,
@@ -20,5 +22,14 @@
     "supportedTargets": [
         "arcade"
     ],
-    "preferredEditor": "tsprj"
+    "preferredEditor": "tsprj",
+    "theme": {
+        "layout": "default",
+        "background-color": "#249CA3",
+        "button-stroke": "#397382",
+        "text-color": "#CECECE",
+        "button-fill": "#333333",
+        "dpad-fill": "#397382",
+        "joystick-handle-stroke": "#999999"
+    }
 }

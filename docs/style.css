@@ -370,7 +370,7 @@ body {
 
 /* --- BOTTOM JOIN INPUT BAR --- */
 .join-bar {
-  display: flex;
+  display: none;
   gap: 8px;
   width: 100%;
   max-width: 720px;

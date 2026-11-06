@@ -28,7 +28,7 @@
   <header class="top-nav">
     <div class="brand-wrap">
       <h1 class="brand-title">AMONG US ARCADE</h1>
-      <span class="brand-badge">P2P v1.0.4</span>
+      <span class="brand-badge">P2P v1.0.5</span>
     </div>
     <div class="nav-badges">
       <div class="pill-badge"><span class="dot"></span> WebRTC Direct P2P</div>
@@ -212,8 +212,8 @@
       </div>
 
       <!-- Barra para unirse a sala -->
-      <div class="join-bar" id="joinBar">
-        <input type="text" id="inputSala" class="k-input" placeholder="Pega el código de sala aquí...">
+      <div class="join-bar" id="joinBar" style="display:none;">
+        <input type="text" id="inputSala" class="k-input" placeholder="Pega el código de sala aquí..." onkeydown="if(event.key==='Enter'){unirseASala(); iniciarEnfoqueJuego();}">
         <button class="k-btn btn-join" onclick="unirseASala(); iniciarEnfoqueJuego();">Unirse</button>
       </div>
 
@@ -225,7 +225,7 @@
 
       <!-- Selector de URL de juego (Opcional) -->
       <span class="url-bar-toggle" onclick="toggleUrlBar()">Configuración avanzada de URL Arcade</span>
-      <div class="url-bar" id="urlBar">
+      <div class="url-bar" id="urlBar" style="display:none;">
         <input type="text" id="inputGameUrl" class="k-input" value="https://arcade.makecode.com/---run?id=S92639-68073-48964-41107&nofooter=1" style="font-size:12px;">
         <button class="k-btn" style="padding:6px 12px; font-size:12px; border-color:#64748b;" onclick="cambiarJuego()">Cargar</button>
       </div>
@@ -276,9 +276,9 @@
       <div class="panel-card">
         <div class="panel-header">The Skeld</div>
         <p style="font-size:13px; color:var(--text-muted); line-height:1.5;">
-          • <strong>Zona:</strong> Outpost Planetario Helado (32x24)<br>
-          • <strong>Spawn:</strong> Nave Dropship Superior<br>
-          • <strong>Salas:</strong> Oficina Central, Electricidad, O2 y Almacén con colisiones y ventilaciones.
+          • <strong>Zona:</strong> Nave Espacial The Skeld (200x100)<br>
+          • <strong>Spawn:</strong> Mesa Central de Cafetería<br>
+          • <strong>Salas:</strong> Cafetería, Electricidad, O2, Almacén y Navegación con tareas interactivas.
         </p>
       </div>
 
@@ -300,47 +300,99 @@
     const badgePlayers = document.getElementById("badgePlayers");
     const squadList = document.getElementById("squadList");
 
-    
-
     let peer = null;
     let esHost = false;
     let miId = 1; // 1 = Rojo por defecto
     let partidaIniciada = false;
     let salaId = "";
     let clientes = {}; // { peerId: { id: 2/3/4, conn: c } }
-    let proximoId = 2;
+    let jugadoresEnSala = [1]; // IDs ocupados sincronizados entre Host e Invitados
     let hostConn = null;
-    const inyectados = new Set(); // Para cancelar eco de MakeCode
+    let rechazoSala = false;
+    let toastTimer = null;
+    const inyectados = new Map(); // Contador de mensajes inyectados para cancelar eco de MakeCode
+
+    function obtenerIdDisponible() {
+      const usados = new Set(Object.values(clientes).map(c => c.id));
+      for (let i = 2; i <= 4; i++) {
+        if (!usados.has(i)) return i;
+      }
+      return null;
+    }
+
+    function obtenerIdsOcupadosHost() {
+      const ids = [1];
+      Object.keys(clientes).forEach(pid => {
+        const id = clientes[pid] && clientes[pid].id;
+        if (id >= 2 && id <= 4 && !ids.includes(id)) ids.push(id);
+      });
+      ids.sort((a, b) => a - b);
+      return ids;
+    }
+
+    function sincronizarEscuadronClientes() {
+      if (!esHost) return;
+      jugadoresEnSala = obtenerIdsOcupadosHost();
+      actualizarUISquad();
+      broadcastAClientes({
+        canal: "amogus_in",
+        accion: "squad_sync",
+        valor: jugadoresEnSala.join(",")
+      });
+    }
 
     // Toast flotante
     function showToast(msg) {
       const t = document.getElementById("toast");
+      if (!t) return;
       t.innerText = msg;
       t.classList.add("show");
-      setTimeout(() => t.classList.remove("show"), 2800);
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove("show"), 2800);
     }
 
     function toggleJoinBar() {
       const b = document.getElementById("joinBar");
-      b.style.display = b.style.display === "none" ? "flex" : "none";
-      if (b.style.display === "flex") {
-        document.getElementById("inputSala").focus();
+      if (!b) return;
+      const oculto = getComputedStyle(b).display === "none";
+      b.style.display = oculto ? "flex" : "none";
+      if (oculto) {
+        const inp = document.getElementById("inputSala");
+        if (inp) inp.focus();
       }
     }
 
     function toggleUrlBar() {
       const b = document.getElementById("urlBar");
-      b.style.display = b.style.display === "none" ? "flex" : "none";
+      if (!b) return;
+      const oculto = getComputedStyle(b).display === "none";
+      b.style.display = oculto ? "flex" : "none";
     }
 
     function iniciarEnfoqueJuego() {
-      
       if (iframe && iframe.contentWindow) {
         iframe.contentWindow.focus();
       }
     }
 
     // --- RECURSIVE CROSS-ORIGIN POSTMESSAGE TO SIMULATOR ---
+    function registrarInyeccion(rawStr) {
+      inyectados.set(rawStr, (inyectados.get(rawStr) || 0) + 1);
+      setTimeout(() => {
+        const actual = inyectados.get(rawStr) || 0;
+        if (actual <= 1) inyectados.delete(rawStr);
+        else inyectados.set(rawStr, actual - 1);
+      }, 250);
+    }
+
+    function consumirEco(rawStr) {
+      const actual = inyectados.get(rawStr) || 0;
+      if (actual <= 0) return false;
+      if (actual === 1) inyectados.delete(rawStr);
+      else inyectados.set(rawStr, actual - 1);
+      return true;
+    }
+
     function enviarAlJuego(accionOrObj, valor = "") {
       let accion = accionOrObj;
       let val = valor;
@@ -352,8 +404,7 @@
       val = String(val || "");
 
       const rawStr = accion + "|" + val;
-      inyectados.add(rawStr);
-      setTimeout(() => inyectados.delete(rawStr), 1000);
+      registrarInyeccion(rawStr);
 
       const encoded = new TextEncoder().encode(rawStr);
       const msgSimUint = {
@@ -365,28 +416,53 @@
 
       if (!iframe || !iframe.contentWindow) return;
 
-      try {
-        iframe.contentWindow.postMessage(msgSimUint, "*");
-      } catch (e) {}
-
+      let entregadoSubframe = false;
       try {
         for (let i = 0; i < iframe.contentWindow.length; i++) {
           try {
             iframe.contentWindow[i].postMessage(msgSimUint, "*");
+            entregadoSubframe = true;
           } catch (e) {}
         }
       } catch (e) {}
+
+      if (!entregadoSubframe) {
+        try {
+          iframe.contentWindow.postMessage(msgSimUint, "*");
+        } catch (e) {}
+      }
     }
 
-    // --- SELECCIÓN MANUAL DE JUGADOR (Solución Punto 1) ---
-    function seleccionarJugadorManual(id) {
+    // --- SELECCIÓN MANUAL DE JUGADOR ---
+    function seleccionarJugadorManual(id, forzado = false) {
+      if (!forzado) {
+        if (partidaIniciada) {
+          showToast("No puedes cambiar de tripulante durante la partida");
+          return;
+        }
+        if (esHost && peer && id !== 1) {
+          showToast("El Anfitrión (Host) siempre juega como Jugador 1 (Rojo)");
+          return;
+        }
+        if (!esHost && hostConn && hostConn.open && id !== miId) {
+          showToast(`En sala online tu lugar asignado es Jugador ${miId}`);
+          return;
+        }
+      }
+
       miId = id;
       actualizarUISeleccion(id);
       enviarAlJuego("set_player", String(id));
+      if (!esHost && (!hostConn || !hostConn.open)) {
+        jugadoresEnSala = [id];
+        actualizarUISquad();
+      }
       
       const colores = ["", "Rojo", "Azul", "Verde", "Amarillo"];
-      showToast(`¡Cambiado a Jugador ${id} (${colores[id]})!`);
-      statusText.innerText = `Controlando: Jugador ${id} (${colores[id]}) en The Skeld.`;
+      if (!forzado) {
+        showToast(`¡Cambiado a Jugador ${id} (${colores[id]})!`);
+        statusText.innerText = `Controlando: Jugador ${id} (${colores[id]}) en The Skeld.`;
+      }
     }
 
     function actualizarUISeleccion(id) {
@@ -401,18 +477,25 @@
 
     // Escuchar mensajes emitidos desde MakeCode hacia la web
     window.addEventListener("message", (event) => {
+      if (event.source === window) return;
       const d = event.data;
       if (!d) return;
 
       // 1. simmessages (messagepacket)
       if (d.type === "messagepacket" && d.channel === "amogus" && d.data) {
+        // MakeCode ---run reenvía cada paquete dos veces (una sin srcFrameIndex y otra con srcFrameIndex: 0)
+        if (d.srcFrameIndex !== undefined) return;
         let text = "";
         if (typeof d.data === "string") {
           text = d.data;
-        } else if (d.data instanceof Uint8Array || Array.isArray(d.data)) {
+        } else if (ArrayBuffer.isView(d.data)) {
+          text = new TextDecoder().decode(new Uint8Array(d.data.buffer, d.data.byteOffset, d.data.byteLength));
+        } else if (Array.isArray(d.data)) {
           text = new TextDecoder().decode(new Uint8Array(d.data));
+        } else if (typeof d.data === "object") {
+          text = new TextDecoder().decode(new Uint8Array(Object.values(d.data)));
         }
-        if (inyectados.has(text)) return; // IGNORAR ECO!
+        if (!text || consumirEco(text)) return; // IGNORAR ECO!
         const sep = text.indexOf("|");
         if (sep >= 0) {
           let acc = text.substring(0, sep);
@@ -430,8 +513,10 @@
     });
 
     function procesarSalidaJuego(accion, valor) {
-      if (accion === "req_start" && esHost) {
-        iniciarPartidaHost();
+      if (accion === "req_start") {
+        if (esHost && peer) {
+          iniciarPartidaHost();
+        }
         return;
       }
       if (accion === "task_win" || accion === "impostor_win" || accion === "imp_win") {
@@ -461,7 +546,8 @@
     }
 
     function actualizarUISquad() {
-      const total = 1 + Object.keys(clientes).length;
+      const idsActivos = esHost ? obtenerIdsOcupadosHost() : jugadoresEnSala;
+      const total = Math.max(1, idsActivos.length);
       
       squadCount.innerText = `${total}/4`;
       badgePlayers.innerText = `👥 ${total}/4 Jugadores`;
@@ -469,16 +555,13 @@
       let html = `
         <div class="squad-member sq-1">
           <span>🔴 Jugador 1 (Rojo)</span>
-          <span class="squad-tag" style="color:#ef4444;">${esHost ? "Host (Tú)" : "Host"}</span>
+          <span class="squad-tag" style="color:#ef4444;">${miId === 1 ? (esHost ? "Host (Tú)" : "Tú") : "Host"}</span>
         </div>
       `;
 
       for (let i = 2; i <= 4; i++) {
-        let ocupado = false;
-        let esLocal = (!esHost && miId === i);
-        Object.keys(clientes).forEach(pid => {
-          if (clientes[pid].id === i) ocupado = true;
-        });
+        let ocupado = idsActivos.includes(i);
+        let esLocal = (miId === i);
 
         const colores = ["", "Rojo", "Azul", "Verde", "Amarillo"];
         const colorName = colores[i];
@@ -514,12 +597,28 @@
       }
     }
 
+    function limpiarPeerPrevio() {
+      if (hostConn) {
+        try { hostConn.close(); } catch (e) {}
+        hostConn = null;
+      }
+      if (peer) {
+        try { peer.destroy(); } catch (e) {}
+        peer = null;
+      }
+      clientes = {};
+      partidaIniciada = false;
+      rechazoSala = false;
+    }
+
     // --- MODO HOST ---
     function crearSala() {
+      limpiarPeerPrevio();
       statusText.innerText = "Creando sala P2P en la red...";
       esHost = true;
       miId = 1;
-      seleccionarJugadorManual(1);
+      jugadoresEnSala = [1];
+      seleccionarJugadorManual(1, true);
 
       peer = new Peer();
 
@@ -544,19 +643,20 @@
       });
 
       peer.on("connection", (c) => {
-        const total = 1 + Object.keys(clientes).length;
-        if (total >= 4 || partidaIniciada) {
+        const idAsignado = obtenerIdDisponible();
+        if (!idAsignado || partidaIniciada) {
           c.on("open", () => {
-            c.send({ canal: "amogus_in", accion: "error", valor: "Sala llena o en curso" });
-            c.close();
+            c.send({ canal: "amogus_in", accion: "error", valor: partidaIniciada ? "La partida ya está en curso" : "La sala está llena (4/4)" });
+            setTimeout(() => { try { c.close(); } catch (e) {} }, 150);
           });
           return;
         }
 
-        const idAsignado = proximoId++;
+        // Reservar el slot inmediatamente para evitar colisiones si dos jugadores entran a la vez
+        clientes[c.peer] = { id: idAsignado, conn: c };
+
         c.on("open", () => {
-          clientes[c.peer] = { id: idAsignado, conn: c };
-          actualizarUISquad();
+          sincronizarEscuadronClientes();
           showToast(`¡Jugador ${idAsignado} se unió a la sala!`);
 
           // Enviar bienvenida con el ID asignado al invitado
@@ -565,8 +665,19 @@
             accion: "bienvenida",
             valor: idAsignado
           });
+          c.send({
+            canal: "amogus_in",
+            accion: "squad_sync",
+            valor: obtenerIdsOcupadosHost().join(",")
+          });
 
           c.on("data", (data) => {
+            if (!data || !data.accion) return;
+            if (data.accion === "task_win" || data.accion === "impostor_win" || data.accion === "imp_win") {
+              partidaIniciada = false;
+              const btnStart = document.getElementById("btnStartGame");
+              if (btnStart && esHost) btnStart.style.display = "inline-flex";
+            }
             enviarAlJuego(data.accion, data.valor);
             broadcastAClientes({
               canal: "amogus_in",
@@ -578,26 +689,35 @@
           c.on("close", () => {
             const discId = clientes[c.peer] ? clientes[c.peer].id : null;
             delete clientes[c.peer];
-            actualizarUISquad();
-            showToast(`Un jugador se ha desconectado`);
+            sincronizarEscuadronClientes();
             if (discId) {
+              showToast(`Jugador ${discId} se ha desconectado`);
               enviarAlJuego("player_left", String(discId));
               broadcastAClientes({ canal: "amogus_in", accion: "player_left", valor: String(discId) });
             }
           });
         });
+
+        c.on("error", () => {
+          if (clientes[c.peer]) {
+            delete clientes[c.peer];
+            sincronizarEscuadronClientes();
+          }
+        });
       });
     }
 
     function iniciarPartidaHost() {
-      const total = 1 + Object.keys(clientes).length;
+      const idsOcupados = obtenerIdsOcupadosHost();
+      const total = idsOcupados.length;
       partidaIniciada = true;
 
-      // Elegir impostor al azar entre 1 y total
-      const impostorId = Math.floor(Math.random() * total) + 1;
+      // Elegir impostor al azar entre los IDs realmente presentes en la sala
+      const impostorId = idsOcupados[Math.floor(Math.random() * idsOcupados.length)] || 1;
+      const maxId = Math.max(...idsOcupados);
 
       // Iniciar MakeCode local del Host con repetición para garantizar recepción
-      const valHost = `1,${total},${impostorId}`;
+      const valHost = `1,${maxId},${impostorId}`;
       enviarAlJuego("setup_partida", valHost);
       setTimeout(() => enviarAlJuego("setup_partida", valHost), 250);
       setTimeout(() => enviarAlJuego("setup_partida", valHost), 600);
@@ -605,7 +725,7 @@
       // Notificar a todos los clientes
       Object.keys(clientes).forEach(pid => {
         const client = clientes[pid];
-        const valClient = `${client.id},${total},${impostorId}`;
+        const valClient = `${client.id},${maxId},${impostorId}`;
         const msg = {
           canal: "amogus_in",
           accion: "setup_partida",
@@ -617,6 +737,16 @@
           setTimeout(() => client.conn && client.conn.open && client.conn.send(msg), 600);
         }
       });
+
+      // Si algún slot intermedio (ej. Jugador 2 cuando están 1 y 3) está vacío, notificar su ausencia
+      for (let i = 1; i <= maxId; i++) {
+        if (!idsOcupados.includes(i)) {
+          setTimeout(() => {
+            enviarAlJuego("player_left", String(i));
+            broadcastAClientes({ canal: "amogus_in", accion: "player_left", valor: String(i) });
+          }, 700);
+        }
+      }
 
       showToast(`¡Partida iniciada con ${total} jugadores!`);
       statusText.innerText = `¡Partida en marcha! ${total} jugadores en The Skeld. Impostor asignado en secreto.`;
@@ -632,8 +762,14 @@
         showToast("Por favor pega un código de sala válido");
         return;
       }
+      limpiarPeerPrevio();
       statusText.innerText = "Conectando con el Host...";
       esHost = false;
+      cardRoomCode.style.display = "none";
+      btnCopy.style.display = "none";
+      const btnStart = document.getElementById("btnStartGame");
+      if (btnStart) btnStart.style.display = "none";
+
       peer = new Peer();
 
       peer.on("error", (err) => {
@@ -655,32 +791,56 @@
         hostConn.on("open", () => {
           statusText.innerText = "¡Conectado! Esperando a que el Host inicie la partida...";
           showToast("¡Conectado al Host exitosamente!");
+          const jb = document.getElementById("joinBar");
+          if (jb) jb.style.display = "none";
           iniciarEnfoqueJuego();
         });
 
         hostConn.on("data", (data) => {
+          if (!data || !data.accion) return;
+          if (data.accion === "error") {
+            rechazoSala = true;
+            showToast(String(data.valor || "No se pudo unir a la sala"));
+            statusText.innerText = "No se pudo unir: " + String(data.valor || "Sala no disponible");
+            return;
+          }
           if (data.accion === "bienvenida") {
             miId = parseInt(data.valor);
-            actualizarUISeleccion(miId);
-            enviarAlJuego("set_player", String(miId));
+            if (!jugadoresEnSala.includes(1)) jugadoresEnSala.push(1);
+            if (!jugadoresEnSala.includes(miId)) jugadoresEnSala.push(miId);
+            seleccionarJugadorManual(miId, true);
 
             const colores = ["", "Rojo", "Azul", "Verde", "Amarillo"];
             showToast(`¡Asignado como Jugador ${miId} (${colores[miId]})!`);
             statusText.innerText = `Conectado como Jugador ${miId} (${colores[miId]}). Esperando inicio.`;
             actualizarUISquad();
+          } else if (data.accion === "squad_sync") {
+            const ids = String(data.valor || "1").split(",").map(n => parseInt(n)).filter(n => n >= 1 && n <= 4);
+            jugadoresEnSala = ids.length ? ids : [1];
+            actualizarUISquad();
           } else if (data.accion === "setup_partida") {
+            partidaIniciada = true;
             statusText.innerText = "¡Partida comenzada en Skeld!";
             showToast("¡Partida iniciada!");
             enviarAlJuego("setup_partida", data.valor);
           } else {
+            if (data.accion === "task_win" || data.accion === "impostor_win" || data.accion === "imp_win") {
+              partidaIniciada = false;
+              statusText.innerText = "Partida finalizada. Esperando al Host en el Lobby...";
+            }
             enviarAlJuego(data.accion, data.valor);
           }
         });
 
-        hostConn.on("close", () => { alert("El Host se ha desconectado. La sala se ha cerrado."); location.reload(); });
-
-
-
+        hostConn.on("close", () => {
+          if (rechazoSala) return;
+          showToast("El Host se ha desconectado. Sala cerrada.");
+          statusText.innerText = "El Host cerró la sala. Modo Offline / Práctica activo.";
+          hostConn = null;
+          partidaIniciada = false;
+          jugadoresEnSala = [miId];
+          actualizarUISquad();
+        });
       });
     }
 
